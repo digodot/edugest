@@ -1077,53 +1077,55 @@
       appId: "1:689769437258:web:f863a95c60fa89ef4eeeb3"
     };
 
-    // Inicializa o Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // ============================================================
-    // FUNÇÕES UNIVERSAIS DO BANCO DE DADOS (FIRESTORE)
-    // ============================================================
+    // FUNÇÃO DE UTILIDADE PARA ORDENAR ALUNOS POR NOME
+    function ordenarAlunosPorNome(lista) {
+      return (lista || []).sort((a, b) => 
+        String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', { sensitivity: 'base' })
+      );
+    }
+
     async function api(colecao, options = {}) {
-  const method = options.method || 'GET';
-  const body = options.body ? JSON.parse(options.body) : null;
+      const method = options.method || 'GET';
+      const body = options.body ? JSON.parse(options.body) : null;
 
-  const partes = colecao.replace(/^\/api\//, '').replace(/^\//, '').split('/');
-  const colName = partes[0];
-  const docId = partes[1];
+      const partes = colecao.replace(/^\/api\//, '').replace(/^\//, '').split('/');
+      const colName = partes[0];
+      const docId = partes[1];
 
-  try {
-    if (method === 'GET') {
-      const snapshot = await db.collection(colName).get();
-      let lista = [];
-      snapshot.forEach(doc => lista.push({ id: doc.id, ...doc.data() }));
-      return lista;
-    }
+      try {
+        if (method === 'GET') {
+          const snapshot = await db.collection(colName).get();
+          let lista = [];
+          snapshot.forEach(doc => lista.push({ id: doc.id, ...doc.data() }));
+          return lista;
+        }
 
-    if (method === 'POST') {
-      const docRef = await db.collection(colName).add(body);
-      return { id: docRef.id, ...body };
-    }
+        if (method === 'POST') {
+          const docRef = await db.collection(colName).add(body);
+          return { id: docRef.id, ...body };
+        }
 
-    if (method === 'PUT') {
-      if (docId) {
-        await db.collection(colName).doc(docId).set(body, { merge: true });
+        if (method === 'PUT') {
+          if (docId) {
+            await db.collection(colName).doc(docId).set(body, { merge: true });
+          }
+          return body;
+        }
+
+        if (method === 'DELETE') {
+          if (docId) {
+            await db.collection(colName).doc(docId).delete();
+          }
+          return { success: true };
+        }
+      } catch (err) {
+        console.error(`Erro no Firestore [${method} - ${colecao}]:`, err);
+        throw err;
       }
-      return body;
     }
-
-    if (method === 'DELETE') {
-      if (docId) {
-        await db.collection(colName).doc(docId).delete();
-      }
-      return { success: true };
-    }
-  } catch (err) {
-    console.error(`Erro no Firestore [${method} - ${colecao}]:`, err);
-    alert(`❌ Erro no Firestore ao executar ${method} em ${colecao}:\n` + err.message);
-    throw err;
-  }
-}
 
     let alunos = [];
     let registros = [];
@@ -1219,7 +1221,6 @@
       });
     });
 
-    // AUTENTICAÇÃO E SESSÃO
     document.getElementById('form-login').addEventListener('submit', (e) => {
       e.preventDefault();
       const emailInp = document.getElementById('login-email').value.trim();
@@ -1268,7 +1269,6 @@
       if (btnUsuarios) btnUsuarios.style.display = usuarioLogado.perfil === 'admin' ? 'flex' : 'none';
     }
 
-    // GESTÃO DE USUÁRIOS
     function alternarCamposVinculoProf(perfil) {
       document.getElementById('box-vinculo-prof').style.display = perfil === 'professor' ? 'flex' : 'none';
     }
@@ -1423,10 +1423,12 @@
         atividades = JSON.parse(localStorage.getItem('edugestao_atividades') || '[]');
       }
 
+      ordenarAlunosPorNome(alunos);
       atualizarViews();
     }
 
     function atualizarViews() {
+      ordenarAlunosPorNome(alunos);
       garantirConfiguracaoEscolas();
       atualizarMetricas();
       popularFiltrosDashboard();
@@ -1651,6 +1653,8 @@
 
       chavesOrdenadas.forEach((turmaComEscola, idxTurma) => {
         const lista = gruposPorTurma[turmaComEscola];
+        ordenarAlunosPorNome(lista); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
         const idTurmaSanfona = `turma-accordion-${idxTurma}`;
 
         htmlAccordion += `
@@ -1847,7 +1851,6 @@
       atualizarViews();
     }
 
-    // ABA TURMAS
     function popularSeletorEscolasNaAbaTurmas() {
       const selectEscola = document.getElementById('seletor-escola-aba-turmas');
       if (!selectEscola) return;
@@ -1913,6 +1916,8 @@
       document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv || 3} | Grupos: ${pesos.grupo || 3} | Pontuadas: ${pesos.pontuada || 2} | Habilidades: ${pesos.hab || 2}`;
 
       const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel)));
+      ordenarAlunosPorNome(alunosTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const regsTurma = registros.filter(r => aTrim(r.turma) === aTrim(turmaSel) && (!r.periodo || r.periodo === periodoSel));
 
       document.getElementById('turma-total-alunos').textContent = alunosTurma.length;
@@ -2017,6 +2022,8 @@
       const pesos = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
 
       const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turma) && aTrim(a.escola) === aTrim(escolaSel));
+      ordenarAlunosPorNome(alunosTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const regsTurma = registros.filter(r => aTrim(r.turma) === aTrim(turma) && (!r.periodo || r.periodo === periodoSel));
 
       const dadosExportar = alunosTurma.map(a => {
@@ -2129,7 +2136,6 @@
       }
     }
 
-    // ABA ALUNOS
     function atualizarTabelas() {
       renderizarListaAlunosAgrupada();
     }
@@ -2165,6 +2171,8 @@
 
       chavesOrdenadas.forEach((turmaComEscola, idx) => {
         const lista = gruposPorTurma[turmaComEscola];
+        ordenarAlunosPorNome(lista); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
         const idGroup = `aba-alunos-group-${idx}`;
 
         htmlAccordion += `
@@ -2239,6 +2247,7 @@
 
       const res = await api('alunos', { method: 'POST', body: JSON.stringify(novoAluno) });
       alunos.push(res);
+      ordenarAlunosPorNome(alunos);
       salvarLocal();
       
       alert('✅ Aluno cadastrado no Firebase!');
@@ -2256,7 +2265,6 @@
       }
     });
 
-    // IMPORTAÇÃO EXCEL COM INSERÇÃO EM LOTE DIRETA NO FIRESTORE
     async function processarExcel() {
       const fileInput = document.getElementById('arquivo-excel');
       const btnProcessar = document.getElementById('btn-processar-excel');
@@ -2308,7 +2316,6 @@
             return;
           }
 
-          // Inserção em Lote (Batch) no Firestore
           const batchSize = 500;
           for (let i = 0; i < novosAlunos.length; i += batchSize) {
             const batch = db.batch();
@@ -2323,6 +2330,7 @@
             await batch.commit();
           }
 
+          ordenarAlunosPorNome(alunos);
           salvarLocal();
           alert(`✅ Importação Concluída!\n\n${novosAlunos.length} aluno(s) gravado(s) diretamente na coleção "alunos" do seu Firestore.`);
           
@@ -2342,7 +2350,6 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // ABA ATIVIDADES
     function popularSeletoresAtividade() {
       const selectEscolaForm = document.getElementById('atividade-escola');
       const selectEscolaFiltro = document.getElementById('filtro-atv-escola');
@@ -2478,44 +2485,50 @@
     }
 
     document.getElementById('form-atividade').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const idEdit = document.getElementById('atividade-id-edit').value;
-  const tipoAtv = document.getElementById('atividade-tipo').value;
-  const tipoFormatado = tipoAtv === 'Pontuada' ? 'Atividade Pontuada' : (tipoAtv === 'Grupo' ? 'Trabalho em Grupo' : 'Atividade Individual');
+      e.preventDefault();
+      const idEdit = document.getElementById('atividade-id-edit').value;
+      const tipoAtv = document.getElementById('atividade-tipo').value;
 
-  const dadosAtividade = {
-    escola: document.getElementById('atividade-escola').value,
-    turma: document.getElementById('atividade-turma').value,
-    periodo: document.getElementById('atividade-periodo').value,
-    disciplina: document.getElementById('atividade-disciplina').value,
-    titulo: document.getElementById('atividade-titulo').value.trim(),
-    tipo: tipoFormatado,
-    data: document.getElementById('atividade-data').value,
-    valor: document.getElementById('atividade-valor').value
-  };
+      const tipoFormatado = tipoAtv === 'Pontuada' ? 'Atividade Pontuada' : (tipoAtv === 'Grupo' ? 'Trabalho em Grupo' : 'Atividade Individual');
 
-  try {
-    if (idEdit) {
-      await db.collection('atividades').doc(idEdit).set(dadosAtividade, { merge: true });
-      const idx = atividades.findIndex(a => String(a.id) === String(idEdit));
-      if (idx !== -1) atividades[idx] = { id: idEdit, ...dadosAtividade };
-      alert('✅ Atividade atualizada no Firebase!');
-    } else {
-      const docRef = await db.collection('atividades').add(dadosAtividade);
-      atividades.push({ id: docRef.id, ...dadosAtividade });
-      alert('✅ Atividade salva com sucesso no Firebase Firestore!');
-    }
+      if (idEdit) {
+        const atv = atividades.find(a => String(a.id) === String(idEdit));
+        if (atv) {
+          atv.escola = document.getElementById('atividade-escola').value;
+          atv.turma = document.getElementById('atividade-turma').value;
+          atv.periodo = document.getElementById('atividade-periodo').value;
+          atv.disciplina = document.getElementById('atividade-disciplina').value;
+          atv.titulo = document.getElementById('atividade-titulo').value.trim();
+          atv.tipo = tipoFormatado;
+          atv.data = document.getElementById('atividade-data').value;
+          atv.valor = document.getElementById('atividade-valor').value;
 
-    salvarLocal();
-    limparFormularioAtividade();
-    renderizarTabelaAtividades();
-    popularSeletoresAvaliacao();
-    renderizarCalendarioEAtividadesData();
-  } catch (error) {
-    console.error("Erro ao salvar atividade:", error);
-    alert("❌ Falha ao salvar no Firestore: " + error.message);
-  }
-});
+          await api(`atividades/${atv.id}`, { method: 'PUT', body: JSON.stringify(atv) });
+          alert('✅ Atividade atualizada no Firebase!');
+        }
+      } else {
+        const novaAtividade = {
+          escola: document.getElementById('atividade-escola').value,
+          turma: document.getElementById('atividade-turma').value,
+          periodo: document.getElementById('atividade-periodo').value,
+          disciplina: document.getElementById('atividade-disciplina').value,
+          titulo: document.getElementById('atividade-titulo').value.trim(),
+          tipo: tipoFormatado,
+          data: document.getElementById('atividade-data').value,
+          valor: document.getElementById('atividade-valor').value
+        };
+
+        const res = await api('atividades', { method: 'POST', body: JSON.stringify(novaAtividade) });
+        atividades.push(res);
+        alert('✅ Atividade salva no Firebase!');
+      }
+
+      salvarLocal();
+      limparFormularioAtividade();
+      renderizarTabelaAtividades();
+      popularSeletoresAvaliacao();
+      renderizarCalendarioEAtividadesData();
+    });
 
     async function excluirAtividade(id) {
       if (!confirm('Deseja excluir esta atividade?')) return;
@@ -2528,7 +2541,6 @@
       renderizarCalendarioEAtividadesData();
     }
 
-    // ABA GRUPOS
     function popularSeletoresGrupos() {
       const selectEscola = document.getElementById('grupo-escola');
       if (!selectEscola) return;
@@ -2588,7 +2600,7 @@
       const trabalhosDaTurma = trabalhos.filter(t => aTrim(t.turma) === aTrim(turmaGrupoSelecionada) && (!escolaSel || aTrim(t.escola) === escolaSel));
 
       if (trabalhosDaTurma.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted);">Nenum trabalho para esta turma.</p>';
+        container.innerHTML = '<p style="color: var(--text-muted);">Nenhum trabalho para esta turma.</p>';
         return;
       }
 
@@ -2613,6 +2625,8 @@
       const escolaSel = document.getElementById('grupo-escola').value;
       const qtdGrupos = Number(document.getElementById('qtd-grupos').value);
       const alunosDaTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaGrupoSelecionada) && aTrim(a.escola) === escolaSel);
+      ordenarAlunosPorNome(alunosDaTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const clicouEmBranco = (window.tipoCriacaoGrupo === 'embranco');
 
       let integrantes = [];
@@ -2674,6 +2688,8 @@
 
     function renderizarTabelaAtribuicao(trabalho) {
       const alunosDaTurma = alunos.filter(a => aTrim(a.turma) === aTrim(trabalho.turma) && (!trabalho.escola || aTrim(a.escola) === aTrim(trabalho.escola)));
+      ordenarAlunosPorNome(alunosDaTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const tbody = document.getElementById('tabela-atribuicao-alunos');
 
       tbody.innerHTML = alunosDaTurma.map(aluno => {
@@ -2810,6 +2826,8 @@
       let html = '';
       for (let g = 1; g <= trabalho.qtd_grupos; g++) {
         const membros = (trabalho.integrantes || []).filter(i => Number(i.grupo) === g);
+        ordenarAlunosPorNome(membros); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
         const nomeAtual = (trabalho.nomes_grupos && trabalho.nomes_grupos[g]) ? trabalho.nomes_grupos[g] : `Grupo ${g}`;
 
         html += `
@@ -2869,7 +2887,6 @@
       renderizarCalendarioEAtividadesData();
     }
 
-    // ABA REGISTROS
     function popularSeletoresMonitor() {
       const selectEscola = document.getElementById('eval-monitor-escola');
       if (!selectEscola) return;
@@ -3049,6 +3066,8 @@
       if (!itemObj) return;
 
       const alunosDaTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaItem) && (!escolaItem || aTrim(a.escola) === aTrim(escolaItem)));
+      ordenarAlunosPorNome(alunosDaTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const pendentes = [];
 
       alunosDaTurma.forEach(aluno => {
@@ -3115,6 +3134,8 @@
       if (selAtv) selAtv.innerHTML = atvs.map(a => `<option value="${a.id}">${a.titulo} [${a.tipo}] [${a.periodo || '1B'}]</option>`).join('') || '<option value="">Sem atividades</option>';
 
       const alunosDaTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turma) && (!escola || aTrim(a.escola) === aTrim(escola)));
+      ordenarAlunosPorNome(alunosDaTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const selAluno = document.getElementById('eval-indiv-aluno');
       if (selAluno) selAluno.innerHTML = alunosDaTurma.map(a => `<option value="${a.nome}">${a.nome}</option>`).join('');
 
@@ -3170,6 +3191,7 @@
       }
 
       const membros = (trab.integrantes || []).filter(i => Number(i.grupo) === numGrupo);
+      ordenarAlunosPorNome(membros); // ORDENAÇÃO ALFABÉTICA (A-Z)
 
       if (membros.length === 0) {
         tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Nenhum aluno atribuído a este grupo ainda.</td></tr>';
@@ -3268,6 +3290,8 @@
       if (selPeriodo) selPeriodo.innerHTML = obterOpcoesPeriodosPorEscola(escola);
 
       const alunosDaTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turma) && (!escola || aTrim(a.escola) === aTrim(escola)));
+      ordenarAlunosPorNome(alunosDaTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       const selAluno = document.getElementById('eval-hab-aluno');
       if (selAluno) selAluno.innerHTML = alunosDaTurma.map(a => `<option value="${a.nome}">${a.nome}</option>`).join('');
 
@@ -3290,8 +3314,11 @@
       if (!select) return;
 
       const valAtual = select.value;
+      const alunosOrdenados = [...alunos];
+      ordenarAlunosPorNome(alunosOrdenados); // ORDENAÇÃO ALFABÉTICA (A-Z)
+
       select.innerHTML = '<option value="">-- Selecione um Aluno --</option>' + 
-        alunos.map(a => `<option value="${a.nome}">${a.nome} (${a.turma} - ${a.escola})</option>`).join('');
+        alunosOrdenados.map(a => `<option value="${a.nome}">${a.nome} (${a.turma} - ${a.escola})</option>`).join('');
 
       if (valAtual && alunos.some(a => a.nome === valAtual)) {
         select.value = valAtual;
@@ -3588,6 +3615,7 @@
       const alunoAtual = selectAluno.value;
 
       const alunosFiltrados = turmaSel ? alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel))) : alunos;
+      ordenarAlunosPorNome(alunosFiltrados); // ORDENAÇÃO ALFABÉTICA (A-Z)
 
       selectAluno.innerHTML = '<option value="">-- Visão Geral da Turma --</option>' + 
         alunosFiltrados.map(a => `<option value="${a.nome}">${a.nome} (${a.turma} - ${a.escola})</option>`).join('');
@@ -3608,6 +3636,7 @@
       
       const regsTurma = turmaSel ? registros.filter(r => aTrim(r.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(r.escola) === aTrim(escolaSel))) : registros;
       const alunosTurma = turmaSel ? alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel))) : alunos;
+      ordenarAlunosPorNome(alunosTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
 
       const notas = regsTurma.filter(r => r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
       const mediaGeral = notas.length > 0 ? (notas.reduce((a, b) => a + b, 0) / notas.length) : 0;
@@ -3769,6 +3798,7 @@
       if (!tbody) return;
 
       const alertaAlunos = [];
+      ordenarAlunosPorNome(listaAlunos); // ORDENAÇÃO ALFABÉTICA (A-Z)
 
       listaAlunos.forEach(aluno => {
         const regsAluno = listaRegs.filter(r => r.aluno === aluno.nome);
@@ -3887,12 +3917,6 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Notas");
       XLSX.writeFile(wb, `Relatorio_EduGestao_${new Date().toISOString().split('T')[0]}.xlsx`);
-    }
-
-    function testarAPI() {
-      db.collection('test').get()
-        .then(() => alert('✅ Conexão estabelecida com sucesso com o Firebase Firestore!'))
-        .catch((e) => alert('❌ Erro de conexão com o Firebase: ' + e.message));
     }
 
     window.addEventListener('DOMContentLoaded', () => {
