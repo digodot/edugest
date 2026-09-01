@@ -3863,15 +3863,12 @@
         const habsBaixas = regsAluno.filter(r => r.tipo === 'Habilidade' && Number(r.nota) < 6.0).map(r => r.habilidade);
 
         if ((media !== null && media < 6.0) || habsBaixas.length > 0) {
-          const prioridade = media !== null && media < 5.0 ? 'urgente' : 'regular';
           alertaAlunos.push({
             nome: aluno.nome,
             turma: `${aluno.turma} (${aluno.escola})`,
             media: media !== null ? media.toFixed(1) : 'Sem Notas',
-            registros: notas.length,
             criticas: habsBaixas.length > 0 ? habsBaixas.join(', ') : 'Desempenho Geral Baixo',
-            acao: media < 6.0 ? 'Reforço / Recuperação' : 'Acompanhamento de Habilidades',
-            prioridade: prioridade
+            acao: media < 6.0 ? 'Reforço / Recuperação' : 'Acompanhamento de Habilidades'
           });
         }
       });
@@ -3879,28 +3876,19 @@
       document.getElementById('rel-alunos-atencao').textContent = alertaAlunos.length;
 
       if (alertaAlunos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--success); font-weight: 600;">✓ Nenhum aluno em estado de atenção no momento! 🎉</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--success);">Nenhum aluno em estado de atenção no momento! 🎉</td></tr>';
         return;
       }
 
-      tbody.innerHTML = alertaAlunos.map(a => {
-        const prioridadeStyle = a.prioridade === 'urgente' ? 
-          'background: #fee2e2; border-left: 4px solid var(--danger);' : 
-          'background: #fef3c7; border-left: 4px solid var(--warning);';
-        return `
-          <tr style="${prioridadeStyle}">
-            <td><strong>${a.nome}</strong></td>
-            <td style="font-size: 12px; color: var(--text-muted);">${a.turma}</td>
-            <td style="text-align: center;">
-              <span style="display: inline-block; padding: 4px 8px; background: ${a.media < 5.0 ? 'var(--danger)' : a.media < 6.0 ? 'var(--warning)' : 'var(--primary)'};
-                color: white; border-radius: 6px; font-weight: bold; font-size: 12px;">${a.media}</span>
-            </td>
-            <td style="font-size: 12px; text-align: center;">${a.registros} avaliação${a.registros !== 1 ? 'ões' : ''}</td>
-            <td style="font-size: 11px; max-width: 250px;">${a.criticas}</td>
-            <td><span class="btn btn-sm ${a.prioridade === 'urgente' ? 'btn-danger' : 'btn-warning'}">${a.acao}</span></td>
-          </tr>
-        `;
-      }).join('');
+      tbody.innerHTML = alertaAlunos.map(a => `
+        <tr>
+          <td><strong>${a.nome}</strong></td>
+          <td>${a.turma}</td>
+          <td><span style="color: var(--danger); font-weight: bold;">${a.media}</span></td>
+          <td style="font-size: 12px;">${a.criticas}</td>
+          <td><span class="btn btn-sm btn-danger">${a.acao}</span></td>
+        </tr>
+      `).join('');
     }
 
     function gerarAnaliseIndividual() {
@@ -3918,12 +3906,7 @@
 
       titulo.textContent = `👤 Ficha de Desempenho: ${alunoSel}`;
 
-      const regsAluno = registros.filter(r => r.aluno === alunoSel).sort((a, b) => {
-        const dataA = new Date(a.data || '0000-01-01');
-        const dataB = new Date(b.data || '0000-01-01');
-        return dataA - dataB;
-      });
-      
+      const regsAluno = registros.filter(r => r.aluno === alunoSel);
       const notasAluno = regsAluno.filter(r => r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
       const mediaAluno = notasAluno.length > 0 ? (notasAluno.reduce((a, b) => a + b, 0) / notasAluno.length).toFixed(1) : 'N/A';
 
@@ -3933,51 +3916,6 @@
       const regsTurma = turmaAluno ? registros.filter(r => aTrim(r.turma) === aTrim(turmaAluno) && (!escolaAluno || aTrim(r.escola) === aTrim(escolaAluno))) : registros;
       const notasTurma = regsTurma.filter(r => r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
       const mediaTurma = notasTurma.length > 0 ? (notasTurma.reduce((a, b) => a + b, 0) / notasTurma.length).toFixed(1) : 'N/A';
-
-      // Análise por disciplina
-      const disciplinas = {};
-      regsAluno.forEach(r => {
-        const disc = r.disciplina || 'Geral';
-        if (!disciplinas[disc]) disciplinas[disc] = [];
-        if (r.nota !== undefined && r.nota !== '') disciplinas[disc].push(Number(r.nota));
-      });
-
-      const disciplinasHtml = Object.entries(disciplinas).map(([disc, notas]) => {
-        const media = notas.length > 0 ? (notas.reduce((a, b) => a + b) / notas.length).toFixed(1) : 'N/A';
-        const statusColor = media >= 7 ? 'var(--success)' : media >= 6 ? 'var(--warning)' : 'var(--danger)';
-        const statusLabel = media >= 7 ? '✓ Bom' : media >= 6 ? '⚠ Regular' : '✗ Crítico';
-        return `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--surface-alt); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${statusColor};">
-            <div>
-              <strong>${disc}</strong>
-              <div style="font-size: 12px; color: var(--text-muted);">${notas.length} registro${notas.length !== 1 ? 's' : ''}</div>
-            </div>
-            <div style="text-align: right;">
-              <span style="font-size: 20px; font-weight: bold; color: ${statusColor};">${media}</span>
-              <div style="font-size: 11px; color: ${statusColor};">${statusLabel}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Análise de tendência
-      let tendencia = 'Estável';
-      let corTendencia = 'var(--primary)';
-      let iconoTendencia = '→';
-      if (notasAluno.length >= 3) {
-        const primeiras = notasAluno.slice(0, Math.floor(notasAluno.length / 2));
-        const ultimas = notasAluno.slice(Math.floor(notasAluno.length / 2));
-        const mediaPrimeiras = primeiras.reduce((a, b) => a + b) / primeiras.length;
-        const mediaUltimas = ultimas.reduce((a, b) => a + b) / ultimas.length;
-        const diferenca = mediaUltimas - mediaPrimeiras;
-        if (diferenca > 0.5) { tendencia = 'Melhora'; corTendencia = 'var(--success)'; iconoTendencia = '↑'; }
-        else if (diferenca < -0.5) { tendencia = 'Queda'; corTendencia = 'var(--danger)'; iconoTendencia = '↓'; }
-      }
-
-      // Status geral
-      const statusGeral = mediaAluno >= 7 ? { label: 'Aprovado', cor: 'var(--success)', icone: '✓' } :
-                          mediaAluno >= 6 ? { label: 'Em Recuperação', cor: 'var(--warning)', icone: '⚠' } :
-                          { label: 'Crítico', cor: 'var(--danger)', icone: '✗' };
 
       const historicoHtml = regsAluno.length > 0 ? regsAluno.map(r => `
         <tr>
@@ -3991,51 +3929,22 @@
       `).join('') : '<tr><td colspan="6" style="text-align:center;">Sem registros lançados para este aluno.</td></tr>';
 
       container.innerHTML = `
-        <!-- KPIs Principais -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-          <div style="padding: 20px; background: linear-gradient(135deg, ${statusGeral.cor} 0%, ${statusGeral.cor}dd 100%); color: white; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">STATUS GERAL</div>
-            <div style="font-size: 28px; font-weight: bold;">${statusGeral.icone} ${statusGeral.label}</div>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
+          <div style="flex: 1; min-width: 200px; padding: 15px; background: var(--surface-alt); border-radius: var(--radius-md); border-left: 4px solid var(--success);">
+            <strong>Média do Aluno:</strong>
+            <span style="font-size: 24px; font-weight: bold; color: var(--success); display: block;">${mediaAluno}</span>
           </div>
-          <div style="padding: 20px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">MÉDIA DO ALUNO</div>
-            <div style="font-size: 28px; font-weight: bold;">${mediaAluno}</div>
-            <div style="font-size: 12px; opacity: 0.8;">de 10</div>
+          <div style="flex: 1; min-width: 200px; padding: 15px; background: var(--surface-alt); border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
+            <strong>Média da Turma (${turmaAluno || 'Geral'}):</strong>
+            <span style="font-size: 24px; font-weight: bold; color: var(--primary); display: block;">${mediaTurma}</span>
           </div>
-          <div style="padding: 20px; background: linear-gradient(135deg, var(--secondary) 0%, #a855f7 100%); color: white; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">MÉDIA DA TURMA</div>
-            <div style="font-size: 28px; font-weight: bold;">${mediaTurma}</div>
-            <div style="font-size: 12px; opacity: 0.8;">${mediaAluno >= mediaTurma ? '✓ Acima' : '✗ Abaixo'}</div>
-          </div>
-          <div style="padding: 20px; background: linear-gradient(135deg, ${corTendencia} 0%, ${corTendencia}dd 100%); color: white; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">TENDÊNCIA</div>
-            <div style="font-size: 28px; font-weight: bold;">${iconoTendencia} ${tendencia}</div>
-            <div style="font-size: 12px; opacity: 0.8;">${notasAluno.length} avaliações</div>
+          <div style="flex: 1; min-width: 200px; padding: 15px; background: var(--surface-alt); border-radius: var(--radius-md);">
+            <strong>Lançamentos do Aluno:</strong>
+            <span style="font-size: 24px; font-weight: bold; color: var(--secondary); display: block;">${regsAluno.length} registros</span>
           </div>
         </div>
-
-        <!-- Performance por Disciplina -->
-        <div style="margin-bottom: 20px;">
-          <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-            <span>📊 Desempenho por Disciplina</span>
-            <span style="font-size: 12px; background: var(--bg-alt); padding: 2px 8px; border-radius: 12px;">${Object.keys(disciplinas).length} disciplina${Object.keys(disciplinas).length !== 1 ? 's' : ''}</span>
-          </h4>
-          ${disciplinasHtml}
-        </div>
-
-        <!-- Recomendações -->
-        <div style="padding: 15px; background: #f0fdf4; border-left: 4px solid var(--success); border-radius: var(--radius-md); margin-bottom: 20px;">
-          <div style="font-weight: 600; color: var(--success); margin-bottom: 8px;">💡 Recomendações Pedagógicas</div>
-          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text);">
-            ${mediaAluno >= 7 ? '<li>Manter o desempenho e aprofundar o aprendizado</li>' : ''}
-            ${mediaAluno >= 6 && mediaAluno < 7 ? '<li>Aumentar a dedicação nas próximas avaliações</li><li>Solicitar acompanhamento em disciplinas com desempenho irregular</li>' : ''}
-            ${mediaAluno < 6 ? '<li>Necessário reforço imediato em disciplinas críticas</li><li>Considerar aulas de recuperação</li><li>Aumentar frequência de avaliações</li>' : ''}
-            ${tendencia === 'Queda' ? '<li>Investigar possíveis dificuldades ou fatores externos</li>' : ''}
-            ${tendencia === 'Melhora' ? '<li>Reconhecer o progresso e manter a motivação</li>' : ''}
-          </ul>
-        </div>
-
-        <h4 style="margin-bottom: 12px;">📋 Boletim Detalhado / Histórico de Avaliações</h4>
+        
+        <h4 style="margin-bottom: 10px;">Boletim Detalhado / Histórico</h4>
         <div class="table-container">
           <table>
             <thead>
