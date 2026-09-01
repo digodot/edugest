@@ -1401,45 +1401,78 @@
     }
 
     document.getElementById('form-usuario').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const idEdit = document.getElementById('user-id-edit').value;
-      const perfil = document.getElementById('user-perfil').value;
-      
-      const selTurmas = document.getElementById('user-turmas-permitidas');
-      const turmasSelecionadas = Array.from(selTurmas.selectedOptions).map(opt => opt.value);
+  e.preventDefault();
+  const idEdit = document.getElementById('user-id-edit').value;
+  const perfil = document.getElementById('user-perfil').value;
+  const emailInp = document.getElementById('user-email').value.trim();
+  const senhaInp = document.getElementById('user-senha').value.trim();
+  const nomeInp = document.getElementById('user-nome').value.trim();
 
-      if (idEdit) {
-        const u = usuarios.find(usr => usr.id === idEdit);
-        if (u) {
-          u.nome = document.getElementById('user-nome').value.trim();
-          u.email = document.getElementById('user-email').value.trim();
-          u.senha = document.getElementById('user-senha').value.trim();
-          u.perfil = perfil;
-          u.disciplina = perfil === 'professor' ? document.getElementById('user-disciplina').value : '';
-          u.turmas = perfil === 'professor' ? turmasSelecionadas : [];
+  const selTurmas = document.getElementById('user-turmas-permitidas');
+  const turmasSelecionadas = Array.from(selTurmas.selectedOptions).map(opt => opt.value);
 
-          await api(`usuarios/${u.id}`, { method: 'PUT', body: JSON.stringify(u) });
-          alert(`✅ Conta de "${u.nome}" atualizada com sucesso!`);
+  const btnSubmit = document.getElementById('btn-salvar-user');
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = '⏳ Salvando...';
+
+  try {
+    if (idEdit) {
+      // 1. Atualiza usuário existente no Firestore
+      const u = usuarios.find(usr => usr.id === idEdit);
+      if (u) {
+        u.nome = nomeInp;
+        u.email = emailInp;
+        u.senha = senhaInp;
+        u.perfil = perfil;
+        u.disciplina = perfil === 'professor' ? document.getElementById('user-disciplina').value : '';
+        u.turmas = perfil === 'professor' ? turmasSelecionadas : [];
+
+        await api(`usuarios/${u.id}`, { method: 'PUT', body: JSON.stringify(u) });
+        alert(`✅ Dados do perfil de "${u.nome}" atualizados!`);
+      }
+    } else {
+      // 2. CRIA O USUÁRIO NO FIREBASE AUTHENTICATION PRIMEIRO
+      try {
+        // Cria uma instância secundária para não deslogar o admin atual durante o cadastro
+        const appSecundario = firebase.apps.length > 1 
+          ? firebase.apps[1] 
+          : firebase.initializeApp(firebaseConfig, 'AppSecundario');
+        
+        await appSecundario.auth().createUserWithEmailAndPassword(emailInp, senhaInp);
+        await appSecundario.auth().signOut();
+      } catch (authError) {
+        // Se o usuário já existir no Auth, apenas prossegue salvando no Firestore
+        if (authError.code !== 'auth/email-already-in-use') {
+          console.warn('Aviso no Firebase Auth:', authError.message);
         }
-      } else {
-        const novoUsuario = {
-          nome: document.getElementById('user-nome').value.trim(),
-          email: document.getElementById('user-email').value.trim(),
-          senha: document.getElementById('user-senha').value.trim(),
-          perfil: perfil,
-          disciplina: perfil === 'professor' ? document.getElementById('user-disciplina').value : '',
-          turmas: perfil === 'professor' ? turmasSelecionadas : []
-        };
-
-        const res = await api('usuarios', { method: 'POST', body: JSON.stringify(novoUsuario) });
-        usuarios.push(res);
-        alert('✅ Conta cadastrada com sucesso!');
       }
 
-      salvarLocal();
-      limparFormularioUsuario();
-      renderizarTabelaUsuarios();
-    });
+      // 3. Salva no banco Firestore
+      const novoUsuario = {
+        nome: nomeInp,
+        email: emailInp,
+        senha: senhaInp,
+        perfil: perfil,
+        disciplina: perfil === 'professor' ? document.getElementById('user-disciplina').value : '',
+        turmas: perfil === 'professor' ? turmasSelecionadas : []
+      };
+
+      const res = await api('usuarios', { method: 'POST', body: JSON.stringify(novoUsuario) });
+      usuarios.push(res);
+      alert('✅ Conta criada com sucesso no Firebase Auth e no Firestore!');
+    }
+
+    salvarLocal();
+    limparFormularioUsuario();
+    renderizarTabelaUsuarios();
+  } catch (error) {
+    console.error('Erro ao salvar usuário:', error);
+    alert('❌ Erro ao salvar usuário: ' + error.message);
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = 'Cadastrar Conta';
+  }
+});
 
     async function excluirUsuario(idx) {
       if (!confirm('Deseja excluir esta conta de usuário?')) return;
@@ -3710,65 +3743,120 @@
     }
 
     function renderizarGraficoDesempenho(regsTurma, alunoSel) {
-      const ctx = document.getElementById('chart-desempenho');
-      if (!ctx) return;
+  const ctx = document.getElementById('chart-desempenho');
+  if (!ctx) return;
 
-      const atvTurmaMap = {};
-      const atvAlunoMap = {};
+  // 1. Filtra registros de atividades e ordena cronologicamente por data
+  const regsValidos = regsTurma
+    .filter(r => r.tipo !== 'Habilidade' && r.nota !== undefined && r.nota !== '')
+    .sort((a, b) => new Date(a.data || '2000-01-01') - new Date(b.data || '2000-01-01'));
 
-      regsTurma.filter(r => r.tipo !== 'Habilidade' && r.nota !== undefined && r.nota !== '').forEach(r => {
-        const nomeAtv = (r.trabalho || r.tipo) + (r.disciplina ? ` [${r.disciplina}]` : '');
-        
-        if (!atvTurmaMap[nomeAtv]) atvTurmaMap[nomeAtv] = [];
-        atvTurmaMap[nomeAtv].push(Number(r.nota));
+  const atvTurmaMap = {};
+  const atvAlunoMap = {};
+  const datasMap = {};
 
-        if (alunoSel && r.aluno === alunoSel) {
-          if (!atvAlunoMap[nomeAtv]) atvAlunoMap[nomeAtv] = [];
-          atvAlunoMap[nomeAtv].push(Number(r.nota));
-        }
-      });
+  regsValidos.forEach(r => {
+    // Limpa o título tirando os status entre parênteses para não poluir o eixo X
+    const tituloLimpo = (r.trabalho || r.tipo).replace(/\s*\([^)]*\)/g, '').trim();
+    const chaveAtv = `${r.periodo || '1B'} - ${tituloLimpo}`;
+    
+    if (!atvTurmaMap[chaveAtv]) atvTurmaMap[chaveAtv] = [];
+    atvTurmaMap[chaveAtv].push(Number(r.nota));
 
-      const labels = Object.keys(atvTurmaMap);
-      const dataTurma = labels.map(l => (atvTurmaMap[l].reduce((a, b) => a + b, 0) / atvTurmaMap[l].length).toFixed(1));
+    if (r.data) datasMap[chaveAtv] = r.data.split('-').reverse().slice(0, 2).join('/');
 
-      const datasets = [];
-
-      if (alunoSel) {
-        const dataAluno = labels.map(l => {
-          const arr = atvAlunoMap[l];
-          return (arr && arr.length > 0) ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : 0;
-        });
-
-        datasets.push({
-          label: `Nota: ${alunoSel.split(' ')[0]}`,
-          data: dataAluno,
-          backgroundColor: '#10b981',
-          borderRadius: 6
-        });
-
-        datasets.push({
-          label: 'Média da Turma',
-          data: dataTurma,
-          backgroundColor: '#6366f1',
-          borderRadius: 6
-        });
-      } else {
-        datasets.push({
-          label: 'Média da Turma',
-          data: dataTurma.length > 0 ? dataTurma : [0],
-          backgroundColor: '#6366f1',
-          borderRadius: 6
-        });
-      }
-
-      if (chartDesempenhoInstance) chartDesempenhoInstance.destroy();
-
-      chartDesempenhoInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: labels.length > 0 ? labels : ['Sem Dados'], datasets: datasets },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 10 } } }
-      });
+    if (alunoSel && r.aluno === alunoSel) {
+      if (!atvAlunoMap[chaveAtv]) atvAlunoMap[chaveAtv] = [];
+      atvAlunoMap[chaveAtv].push(Number(r.nota));
     }
+  });
+
+  const labels = Object.keys(atvTurmaMap).map(l => datasMap[l] ? `${datasMap[l]} (${l})` : l);
+  const chavesAtividades = Object.keys(atvTurmaMap);
+  const dataTurma = chavesAtividades.map(l => (atvTurmaMap[l].reduce((a, b) => a + b, 0) / atvTurmaMap[l].length).toFixed(1));
+
+  const datasets = [];
+
+  if (alunoSel) {
+    const dataAluno = chavesAtividades.map(l => {
+      const arr = atvAlunoMap[l];
+      return (arr && arr.length > 0) ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null;
+    });
+
+    datasets.push({
+      label: `Evolução: ${alunoSel.split(' ')[0]}`,
+      data: dataAluno,
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointBackgroundColor: '#10b981',
+      borderWidth: 3,
+      spanGaps: true
+    });
+
+    datasets.push({
+      label: 'Média da Turma',
+      data: dataTurma,
+      borderColor: '#6366f1',
+      borderDash: [5, 5],
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: '#6366f1',
+      borderWidth: 2
+    });
+  } else {
+    datasets.push({
+      label: 'Evolução Média da Turma',
+      data: dataTurma.length > 0 ? dataTurma : [0],
+      borderColor: '#6366f1',
+      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 5,
+      pointBackgroundColor: '#6366f1',
+      borderWidth: 3
+    });
+  }
+
+  if (chartDesempenhoInstance) chartDesempenhoInstance.destroy();
+
+  chartDesempenhoInstance = new Chart(ctx, {
+    type: 'line',
+    data: { 
+      labels: labels.length > 0 ? labels : ['Sem Dados'], 
+      datasets: datasets 
+    },
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: (context) => ` Nota: ${context.raw} / 10`
+          }
+        }
+      },
+      scales: { 
+        y: { 
+          min: 0, 
+          max: 10,
+          ticks: { stepSize: 2 }
+        },
+        x: {
+          ticks: {
+            maxRotation: 25,
+            minRotation: 0,
+            font: { size: 11 }
+          }
+        }
+      } 
+    }
+  });
+}
 
     function renderizarGraficoHabilidades(regsTurma, alunoSel) {
       const ctx = document.getElementById('chart-habilidades');
