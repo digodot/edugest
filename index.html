@@ -1606,52 +1606,62 @@
     }
 
     function renderizarTabelaPesosConfig(regime, pesos) {
-      const tbody = document.getElementById('tabela-config-pesos-body');
-      if (!tbody) return;
+  const tbody = document.getElementById('tabela-config-pesos-body');
+  if (!tbody) return;
 
-      const periodos = regime === 'bimestral' 
-        ? [ { id: '1B', nome: '1º Bimestre' }, { id: '2B', nome: '2º Bimestre' }, { id: '3B', nome: '3º Bimestre' }, { id: '4B', nome: '4º Bimestre' } ]
-        : [ { id: '1T', nome: '1º Trimestre' }, { id: '2T', nome: '2º Trimestre' }, { id: '3T', nome: '3º Trimestre' } ];
+  const periodos = regime === 'bimestral' 
+    ? [ { id: '1B', nome: '1º Bimestre' }, { id: '2B', nome: '2º Bimestre' }, { id: '3B', nome: '3º Bimestre' }, { id: '4B', nome: '4º Bimestre' } ]
+    : [ { id: '1T', nome: '1º Trimestre' }, { id: '2T', nome: '2º Trimestre' }, { id: '3T', nome: '3º Trimestre' } ];
 
-      tbody.innerHTML = periodos.map(p => {
-        const valP = pesos[p.id] || { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
-        return `
-          <tr>
-            <td><strong>${p.nome}</strong></td>
-            <td><input type="number" id="peso-indiv-${p.id}" class="form-input" value="${valP.indiv || 3}" min="0" max="10"></td>
-            <td><input type="number" id="peso-grupo-${p.id}" class="form-input" value="${valP.grupo || 3}" min="0" max="10"></td>
-            <td><input type="number" id="peso-pontuada-${p.id}" class="form-input" value="${valP.pontuada || 2}" min="0" max="10"></td>
-            <td><input type="number" id="peso-hab-${p.id}" class="form-input" value="${valP.hab || 2}" min="0" max="10"></td>
-          </tr>
-        `;
-      }).join('');
-    }
+  tbody.innerHTML = periodos.map(p => {
+    const valP = pesos[p.id] || { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
+    const pInd = valP.indiv !== undefined ? valP.indiv : 3;
+    const pGrp = valP.grupo !== undefined ? valP.grupo : 3;
+    const pPon = valP.pontuada !== undefined ? valP.pontuada : 2;
+    const pHab = valP.hab !== undefined ? valP.hab : 2;
+
+    return `
+      <tr>
+        <td><strong>${p.nome}</strong></td>
+        <td><input type="number" id="peso-indiv-${p.id}" class="form-input" value="${pInd}" min="0" max="10"></td>
+        <td><input type="number" id="peso-grupo-${p.id}" class="form-input" value="${pGrp}" min="0" max="10"></td>
+        <td><input type="number" id="peso-pontuada-${p.id}" class="form-input" value="${pPon}" min="0" max="10"></td>
+        <td><input type="number" id="peso-hab-${p.id}" class="form-input" value="${pHab}" min="0" max="10"></td>
+      </tr>
+    `;
+  }).join('');
+}
 
     function salvarConfigEscola() {
-      const escolaSel = document.getElementById('config-seletor-escola').value;
-      if (!escolaSel) return;
+  const escolaSel = document.getElementById('config-seletor-escola').value;
+  if (!escolaSel) return;
 
-      const regime = document.getElementById('config-tipo-regime').value;
-      const periodos = regime === 'bimestral' ? ['1B', '2B', '3B', '4B'] : ['1T', '2T', '3T'];
+  const regime = document.getElementById('config-tipo-regime').value;
+  const periodos = regime === 'bimestral' ? ['1B', '2B', '3B', '4B'] : ['1T', '2T', '3T'];
 
-      const novosPesos = {};
-      periodos.forEach(p => {
-        novosPesos[p] = {
-          indiv: Number(document.getElementById(`peso-indiv-${p}`).value) || 0,
-          grupo: Number(document.getElementById(`peso-grupo-${p}`).value) || 0,
-          pontuada: Number(document.getElementById(`peso-pontuada-${p}`).value) || 0,
-          hab: Number(document.getElementById(`peso-hab-${p}`).value) || 0
-        };
-      });
+  const novosPesos = {};
+  periodos.forEach(p => {
+    const valIndiv = document.getElementById(`peso-indiv-${p}`).value;
+    const valGrupo = document.getElementById(`peso-grupo-${p}`).value;
+    const valPontuada = document.getElementById(`peso-pontuada-${p}`).value;
+    const valHab = document.getElementById(`peso-hab-${p}`).value;
 
-      configEscolas[escolaSel] = { regime, pesos: novosPesos };
-      salvarLocal();
-      alert(`✅ Configurações salvas para a escola "${escolaSel}"!`);
-      
-      popularSeletorEscolasNaAbaTurmas();
-      popularSeletoresAtividade();
-      popularSeletoresAvaliacao();
-    }
+    novosPesos[p] = {
+      indiv: valIndiv !== '' ? Number(valIndiv) : 3,
+      grupo: valGrupo !== '' ? Number(valGrupo) : 3,
+      pontuada: valPontuada !== '' ? Number(valPontuada) : 2,
+      hab: valHab !== '' ? Number(valHab) : 2
+    };
+  });
+
+  configEscolas[escolaSel] = { regime, pesos: novosPesos };
+  salvarLocal();
+  alert(`✅ Configurações salvas para a escola "${escolaSel}"!`);
+  
+  popularSeletorEscolasNaAbaTurmas();
+  popularSeletoresAtividade();
+  popularSeletoresAvaliacao();
+}
 
     function obterOpcoesPeriodosPorEscola(nomeEscola) {
       const conf = configEscolas[nomeEscola] || { regime: 'bimestral' };
@@ -1996,7 +2006,13 @@
   const periodoSel = document.getElementById('seletor-periodo-aba-turmas').value;
 
   const confEscola = configEscolas[escolaSel] || { pesos: PADRAO_BIMESTRAL };
-  const pesos = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
+const pRaw = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : {};
+const pesos = {
+  indiv: pRaw.indiv !== undefined ? pRaw.indiv : 3,
+  grupo: pRaw.grupo !== undefined ? pRaw.grupo : 3,
+  pontuada: pRaw.pontuada !== undefined ? pRaw.pontuada : 2,
+  hab: pRaw.hab !== undefined ? pRaw.hab : 2
+};
 
   document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv || 3})`;
   document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo || 3})`;
