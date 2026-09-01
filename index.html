@@ -1980,118 +1980,119 @@
     }
 
     function carregarVisaoTurma(chaveTurmaEscola) {
-      const tbody = document.getElementById('tabela-boletim-turma');
-      if (!tbody) return;
+  const tbody = document.getElementById('tabela-boletim-turma');
+  if (!tbody) return;
 
-      if (!chaveTurmaEscola) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Selecione uma turma no filtro acima para visualizar o boletim.</td></tr>';
-        document.getElementById('turma-media-diag').textContent = '—';
-        document.getElementById('turma-total-alunos').textContent = '0';
-        document.getElementById('turma-hab-top').textContent = '—';
-        document.getElementById('turma-hab-low').textContent = '—';
-        return;
-      }
+  if (!chaveTurmaEscola) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">Selecione uma turma no filtro acima para visualizar o boletim.</td></tr>';
+    document.getElementById('turma-media-diag').textContent = '—';
+    document.getElementById('turma-total-alunos').textContent = '0';
+    document.getElementById('turma-hab-top').textContent = '—';
+    document.getElementById('turma-hab-low').textContent = '—';
+    return;
+  }
 
-      const [turmaSel, escolaSel] = chaveTurmaEscola.split('||');
-      const periodoSel = document.getElementById('seletor-periodo-aba-turmas').value;
+  const [turmaSel, escolaSel] = chaveTurmaEscola.split('||');
+  const periodoSel = document.getElementById('seletor-periodo-aba-turmas').value;
 
-      const confEscola = configEscolas[escolaSel] || { pesos: PADRAO_BIMESTRAL };
-      const pesos = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
+  const confEscola = configEscolas[escolaSel] || { pesos: PADRAO_BIMESTRAL };
+  const pesos = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
 
-      document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv || 3})`;
-      document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo || 3})`;
-      document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas (P: ${pesos.pontuada || 2})`;
-      document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab || 2})`;
-      document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv || 3} | Grupos: ${pesos.grupo || 3} | Pontuadas: ${pesos.pontuada || 2} | Habilidades: ${pesos.hab || 2}`;
+  document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv || 3})`;
+  document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo || 3})`;
+  document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas (P: ${pesos.pontuada || 2})`;
+  document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab || 2})`;
+  document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv || 3} | Grupos: ${pesos.grupo || 3} | Pontuadas: ${pesos.pontuada || 2} | Habilidades: ${pesos.hab || 2}`;
 
-      const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel)));
-      ordenarAlunosPorNome(alunosTurma); // ORDENAÇÃO ALFABÉTICA (A-Z)
+  const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel)));
+  ordenarAlunosPorNome(alunosTurma);
 
-      const regsTurma = registros.filter(r => aTrim(r.turma) === aTrim(turmaSel) && (!r.periodo || r.periodo === periodoSel));
+  const regsTurma = registros.filter(r => aTrim(r.turma) === aTrim(turmaSel) && (!r.periodo || r.periodo === periodoSel));
 
-      document.getElementById('turma-total-alunos').textContent = alunosTurma.length;
+  document.getElementById('turma-total-alunos').textContent = alunosTurma.length;
 
-      let somaDiagsTurma = 0;
-      let qtdDiagsContadas = 0;
-      const habsAcumuladas = {};
+  let somaDiagsTurma = 0;
+  let qtdDiagsContadas = 0;
+  const habsAcumuladas = {};
 
-      const linhasHtml = alunosTurma.map(aluno => {
-        const regsAluno = regsTurma.filter(r => r.aluno === aluno.nome);
+  const linhasHtml = alunosTurma.map(aluno => {
+    const regsAluno = regsTurma.filter(r => r.aluno === aluno.nome);
 
-        const nIndiv = regsAluno.filter(r => r.tipo === 'Atividade Individual' && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
-        const medIndiv = nIndiv.length > 0 ? (nIndiv.reduce((a,b)=>a+b,0)/nIndiv.length) : null;
+    const nIndiv = regsAluno.filter(r => r.tipo === 'Atividade Individual' && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
+    const medIndiv = nIndiv.length > 0 ? (nIndiv.reduce((a,b)=>a+b,0)/nIndiv.length) : null;
 
-        const nGrupo = regsAluno.filter(r => r.tipo === 'Trabalho em Grupo' && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
-        const medGrupo = nGrupo.length > 0 ? (nGrupo.reduce((a,b)=>a+b,0)/nGrupo.length) : null;
+    const nGrupo = regsAluno.filter(r => r.tipo === 'Trabalho em Grupo' && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
+    const medGrupo = nGrupo.length > 0 ? (nGrupo.reduce((a,b)=>a+b,0)/nGrupo.length) : null;
 
-        const nPontuada = regsAluno.filter(r => (r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada') && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
-        const medPontuada = nPontuada.length > 0 ? (nPontuada.reduce((a,b)=>a+b,0)/nPontuada.length) : null;
+    const nPontuada = regsAluno.filter(r => (r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada') && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
+    const medPontuada = nPontuada.length > 0 ? (nPontuada.reduce((a,b)=>a+b,0)/nPontuada.length) : null;
 
-        const regsHab = regsAluno.filter(r => r.tipo === 'Habilidade' && r.nota !== undefined && r.nota !== '');
-        const nHab = regsHab.map(r => Number(r.nota));
-        const medHab = nHab.length > 0 ? (nHab.reduce((a,b)=>a+b,0)/nHab.length) : null;
+    const regsHab = regsAluno.filter(r => r.tipo === 'Habilidade' && r.nota !== undefined && r.nota !== '');
+    const nHab = regsHab.map(r => Number(r.nota));
+    const medHab = nHab.length > 0 ? (nHab.reduce((a,b)=>a+b,0)/nHab.length) : null;
 
-        const mapHabAluno = {};
-        regsHab.forEach(r => {
-          if (!mapHabAluno[r.habilidade]) mapHabAluno[r.habilidade] = [];
-          mapHabAluno[r.habilidade].push(Number(r.nota));
+    const mapHabAluno = {};
+    regsHab.forEach(r => {
+      if (!mapHabAluno[r.habilidade]) mapHabAluno[r.habilidade] = [];
+      mapHabAluno[r.habilidade].push(Number(r.nota));
 
-          if (!habsAcumuladas[r.habilidade]) habsAcumuladas[r.habilidade] = [];
-          habsAcumuladas[r.habilidade].push(Number(r.nota));
-        });
+      if (!habsAcumuladas[r.habilidade]) habsAcumuladas[r.habilidade] = [];
+      habsAcumuladas[r.habilidade].push(Number(r.nota));
+    });
 
-        let melhorHab = '—', piorHab = '—', maxH = -1, minH = 11;
-        Object.keys(mapHabAluno).forEach(h => {
-          const medH = mapHabAluno[h].reduce((a,b)=>a+b,0)/mapHabAluno[h].length;
-          if (medH > maxH) { maxH = medH; melhorHab = h; }
-          if (medH < minH) { minH = medH; piorHab = h; }
-        });
+    let melhorHab = '—', piorHab = '—', maxH = -1, minH = 11;
+    Object.keys(mapHabAluno).forEach(h => {
+      const medH = mapHabAluno[h].reduce((a,b)=>a+b,0)/mapHabAluno[h].length;
+      if (medH > maxH) { maxH = medH; melhorHab = h; }
+      if (medH < minH) { minH = medH; piorHab = h; }
+    });
 
-        let numPonderado = 0, denPonderado = 0;
-        if (medIndiv !== null) { numPonderado += medIndiv * (pesos.indiv || 3); denPonderado += (pesos.indiv || 3); }
-        if (medGrupo !== null) { numPonderado += medGrupo * (pesos.grupo || 3); denPonderado += (pesos.grupo || 3); }
-        if (medPontuada !== null) { numPonderado += medPontuada * (pesos.pontuada || 2); denPonderado += (pesos.pontuada || 2); }
-        if (medHab !== null) { numPonderado += medHab * (pesos.hab || 2); denPonderado += (pesos.hab || 2); }
+    // CÁLCULO DA MÉDIA UNIFICADA (PONDERADA COM PESOS DA ESCOLA)
+    let numPonderado = 0, denPonderado = 0;
+    if (medIndiv !== null) { numPonderado += medIndiv * (pesos.indiv || 3); denPonderado += (pesos.indiv || 3); }
+    if (medGrupo !== null) { numPonderado += medGrupo * (pesos.grupo || 3); denPonderado += (pesos.grupo || 3); }
+    if (medPontuada !== null) { numPonderado += medPontuada * (pesos.pontuada || 2); denPonderado += (pesos.pontuada || 2); }
+    if (medHab !== null) { numPonderado += medHab * (pesos.hab || 2); denPonderado += (pesos.hab || 2); }
 
-        let notaDiagnostica = denPonderado > 0 ? (numPonderado / denPonderado) : null;
+    let notaUnificadaFinal = denPonderado > 0 ? (numPonderado / denPonderado) : null;
 
-        if (notaDiagnostica !== null) {
-          somaDiagsTurma += notaDiagnostica;
-          qtdDiagsContadas++;
-        }
-
-        return `
-          <tr>
-            <td><strong>${aluno.nome}</strong></td>
-            <td>${aluno.matricula || '—'}</td>
-            <td>${medIndiv !== null ? medIndiv.toFixed(1) : '—'}</td>
-            <td>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
-            <td>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
-            <td>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
-            <td style="background: #f0f3ff;">
-              <strong style="font-size: 16px; color: ${notaDiagnostica >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
-                ${notaDiagnostica !== null ? notaDiagnostica.toFixed(1) : '—'}
-              </strong>
-            </td>
-            <td><span class="badge-hab badge-best">${melhorHab}</span></td>
-            <td><span class="badge-hab badge-work">${piorHab}</span></td>
-          </tr>
-        `;
-      }).join('');
-
-      tbody.innerHTML = linhasHtml || '<tr><td colspan="9" style="text-align: center;">Nenhum aluno nesta turma.</td></tr>';
-      document.getElementById('turma-media-diag').textContent = qtdDiagsContadas > 0 ? (somaDiagsTurma / qtdDiagsContadas).toFixed(1) : '—';
-
-      let habTopTurma = '—', habLowTurma = '—', maxHT = -1, minHT = 11;
-      Object.keys(habsAcumuladas).forEach(h => {
-        const medHT = habsAcumuladas[h].reduce((a,b)=>a+b,0)/habsAcumuladas[h].length;
-        if (medHT > maxHT) { maxHT = medHT; habTopTurma = h; }
-        if (medHT < minHT) { minHT = medHT; habLowTurma = h; }
-      });
-
-      document.getElementById('turma-hab-top').textContent = habTopTurma;
-      document.getElementById('turma-hab-low').textContent = habLowTurma;
+    if (notaUnificadaFinal !== null) {
+      somaDiagsTurma += notaUnificadaFinal;
+      qtdDiagsContadas++;
     }
+
+    return `
+      <tr>
+        <td><strong>${aluno.nome}</strong></td>
+        <td>${aluno.matricula || '—'}</td>
+        <td>${medIndiv !== null ? medIndiv.toFixed(1) : '—'}</td>
+        <td>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
+        <td>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
+        <td>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
+        <td style="background: #e0e7ff; text-align: center;">
+          <strong style="font-size: 16px; color: ${notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
+            ${notaUnificadaFinal !== null ? notaUnificadaFinal.toFixed(1) : '—'}
+          </strong>
+        </td>
+        <td><span class="badge-hab badge-best">${melhorHab}</span></td>
+        <td><span class="badge-hab badge-work">${piorHab}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = linhasHtml || '<tr><td colspan="9" style="text-align: center;">Nenhum aluno nesta turma.</td></tr>';
+  document.getElementById('turma-media-diag').textContent = qtdDiagsContadas > 0 ? (somaDiagsTurma / qtdDiagsContadas).toFixed(1) : '—';
+
+  let habTopTurma = '—', habLowTurma = '—', maxHT = -1, minHT = 11;
+  Object.keys(habsAcumuladas).forEach(h => {
+    const medHT = habsAcumuladas[h].reduce((a,b)=>a+b,0)/habsAcumuladas[h].length;
+    if (medHT > maxHT) { maxHT = medHT; habTopTurma = h; }
+    if (medHT < minHT) { minHT = medHT; habLowTurma = h; }
+  });
+
+  document.getElementById('turma-hab-top').textContent = habTopTurma;
+  document.getElementById('turma-hab-low').textContent = habLowTurma;
+}
 
     function recalcularEAtualizarTurma() {
       const select = document.getElementById('seletor-aba-turmas');
