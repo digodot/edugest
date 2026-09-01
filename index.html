@@ -1245,18 +1245,32 @@
     }
 
     function aplicarPermissoesPerfil() {
-      if (!usuarioLogado) return;
+  if (!usuarioLogado) return;
 
-      const subtitle = document.querySelector('.header-subtitle');
-      if (subtitle) {
-        subtitle.innerHTML = usuarioLogado.perfil === 'admin' 
-          ? `👑 Modo Super Administrador | ${usuarioLogado.nome}`
-          : `👨‍🏫 Professor de <strong>${usuarioLogado.disciplina}</strong> | ${usuarioLogado.nome}`;
-      }
+  const isProf = usuarioLogado.perfil === 'professor';
+  const subtitle = document.querySelector('.header-subtitle');
+  if (subtitle) {
+    subtitle.innerHTML = !isProf 
+      ? `👑 Modo Super Administrador | ${usuarioLogado.nome}`
+      : `👨‍🏫 Professor de <strong>${usuarioLogado.disciplina}</strong> | ${usuarioLogado.nome}`;
+  }
 
-      const btnUsuarios = document.querySelector('.item-admin-only');
-      if (btnUsuarios) btnUsuarios.style.display = usuarioLogado.perfil === 'admin' ? 'flex' : 'none';
+  // Oculta itens restritos ao Admin
+  const btnUsuarios = document.querySelector('.item-admin-only');
+  if (btnUsuarios) btnUsuarios.style.display = !isProf ? 'flex' : 'none';
+
+  const btnDash = document.querySelector('.nav-item[data-page="dashboard"]');
+  if (btnDash) btnDash.style.display = !isProf ? 'flex' : 'none';
+
+  // Se o professor estiver no Dashboard, redireciona para Turmas
+  if (isProf) {
+    const pageDash = document.getElementById('page-dashboard');
+    if (pageDash && pageDash.classList.contains('active')) {
+      const btnTurmas = document.querySelector('.nav-item[data-page="turmas"]');
+      if (btnTurmas) btnTurmas.click();
     }
+  }
+}
 
     function professorPodeGerenciarAluno(aluno) {
       if (!usuarioLogado) return false;
@@ -1270,26 +1284,27 @@
     }
 
     function obterListaTurmasUnicas() {
-      const mapa = new Map();
-      alunos.forEach(a => {
-        if (a.turma) {
-          const turmaLimpa = aTrim(a.turma);
-          const escolaLimpa = aTrim(a.escola);
-          const chave = `${turmaLimpa}||${escolaLimpa}`;
-          
-          if (!mapa.has(chave)) {
-            mapa.set(chave, { turma: turmaLimpa, escola: escolaLimpa });
-          }
-        }
-      });
+  const mapa = new Map();
+  alunos.forEach(a => {
+    if (a.turma) {
+      const turmaLimpa = aTrim(a.turma);
+      const escolaLimpa = aTrim(a.escola);
+      const chave = `${turmaLimpa}||${escolaLimpa}`;
+      
+      // Se for professor, apenas inclui se estiver na lista de turmas permitidas
+      const ehPermitido = !usuarioLogado || usuarioLogado.perfil === 'admin' || (usuarioLogado.turmas || []).includes(chave);
 
-      return Array.from(mapa.values()).sort((a, b) => {
-        if (a.escola !== b.escola) {
-          return a.escola.localeCompare(b.escola);
-        }
-        return a.turma.localeCompare(b.turma, undefined, { numeric: true, sensitivity: 'base' });
-      });
+      if (ehPermitido && !mapa.has(chave)) {
+        mapa.set(chave, { turma: turmaLimpa, escola: escolaLimpa });
+      }
     }
+  });
+
+  return Array.from(mapa.values()).sort((a, b) => {
+    if (a.escola !== b.escola) return a.escola.localeCompare(b.escola);
+    return a.turma.localeCompare(b.turma, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
 
     document.querySelectorAll('.nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2591,50 +2606,112 @@
     }
 
     document.getElementById('form-atividade').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const idEdit = document.getElementById('atividade-id-edit').value;
-      const tipoAtv = document.getElementById('atividade-tipo').value;
+  e.preventDefault();
+  const idEdit = document.getElementById('atividade-id-edit').value;
+  const tipoAtv = document.getElementById('atividade-tipo').value;
 
-      const tipoFormatado = tipoAtv === 'Pontuada' ? 'Atividade Pontuada' : (tipoAtv === 'Grupo' ? 'Trabalho em Grupo' : 'Atividade Individual');
+  const tipoFormatado = tipoAtv === 'Pontuada' ? 'Atividade Pontuada' : (tipoAtv === 'Grupo' ? 'Trabalho em Grupo' : 'Atividade Individual');
 
-      if (idEdit) {
-        const atv = atividades.find(a => String(a.id) === String(idEdit));
-        if (atv) {
-          atv.escola = document.getElementById('atividade-escola').value;
-          atv.turma = document.getElementById('atividade-turma').value;
-          atv.periodo = document.getElementById('atividade-periodo').value;
-          atv.disciplina = document.getElementById('atividade-disciplina').value;
-          atv.titulo = document.getElementById('atividade-titulo').value.trim();
-          atv.tipo = tipoFormatado;
-          atv.data = document.getElementById('atividade-data').value;
-          atv.valor = document.getElementById('atividade-valor').value;
+  if (idEdit) {
+    const atv = atividades.find(a => String(a.id) === String(idEdit));
+    if (atv) {
+      atv.escola = document.getElementById('atividade-escola').value;
+      atv.turma = document.getElementById('atividade-turma').value;
+      atv.periodo = document.getElementById('atividade-periodo').value;
+      atv.disciplina = document.getElementById('atividade-disciplina').value;
+      atv.titulo = document.getElementById('atividade-titulo').value.trim();
+      atv.tipo = tipoFormatado;
+      atv.data = document.getElementById('atividade-data').value;
+      atv.valor = document.getElementById('atividade-valor').value;
 
-          await api(`atividades/${atv.id}`, { method: 'PUT', body: JSON.stringify(atv) });
-          alert('✅ Atividade atualizada no Firebase!');
-        }
-      } else {
-        const novaAtividade = {
-          escola: document.getElementById('atividade-escola').value,
-          turma: document.getElementById('atividade-turma').value,
-          periodo: document.getElementById('atividade-periodo').value,
-          disciplina: document.getElementById('atividade-disciplina').value,
-          titulo: document.getElementById('atividade-titulo').value.trim(),
-          tipo: tipoFormatado,
-          data: document.getElementById('atividade-data').value,
-          valor: document.getElementById('atividade-valor').value
-        };
+      await api(`atividades/${atv.id}`, { method: 'PUT', body: JSON.stringify(atv) });
+      alert('✅ Atividade atualizada!');
+    }
+  } else {
+    const novaAtividade = {
+      escola: document.getElementById('atividade-escola').value,
+      turma: document.getElementById('atividade-turma').value,
+      periodo: document.getElementById('atividade-periodo').value,
+      disciplina: document.getElementById('atividade-disciplina').value,
+      titulo: document.getElementById('atividade-titulo').value.trim(),
+      tipo: tipoFormatado,
+      data: document.getElementById('atividade-data').value,
+      valor: document.getElementById('atividade-valor').value,
+      criadorEmail: usuarioLogado ? usuarioLogado.email : 'admin' // Associa ao autor
+    };
 
-        const res = await api('atividades', { method: 'POST', body: JSON.stringify(novaAtividade) });
-        atividades.push(res);
-        alert('✅ Atividade salva no Firebase!');
+    const res = await api('atividades', { method: 'POST', body: JSON.stringify(novaAtividade) });
+    atividades.push(res);
+    alert('✅ Atividade salva!');
+  }
+
+  salvarLocal();
+  limparFormularioAtividade();
+  renderizarTabelaAtividades();
+  popularSeletoresAvaliacao();
+  renderizarCalendarioEAtividadesData();
+});
+
+function renderizarTabelaAtividades() {
+  const tbody = document.getElementById('tabela-atividades');
+  if (!tbody) return;
+
+  const escolaFiltro = document.getElementById('filtro-atv-escola')?.value;
+  const turmaFiltro = document.getElementById('filtro-atv-turma')?.value;
+
+  const filtradas = atividades.filter(a => {
+    const matchEscola = !escolaFiltro || aTrim(a.escola) === escolaFiltro;
+    const matchTurma = !turmaFiltro || aTrim(a.turma) === turmaFiltro;
+    
+    // Admin vê tudo; Professor vê apenas as atividades que criou
+    const ehDono = usuarioLogado?.perfil === 'admin' || !a.criadorEmail || a.criadorEmail === usuarioLogado?.email;
+    return matchEscola && matchTurma && ehDono;
+  });
+
+  tbody.innerHTML = filtradas.length > 0 
+    ? filtradas.map(a => `
+        <tr>
+          <td><strong>${a.titulo}</strong></td>
+          <td>${a.data || '—'}</td>
+          <td><span class="btn btn-sm btn-secondary" style="font-size:11px;">${a.periodo || '1B'}</span></td>
+          <td>${a.disciplina || 'Geral'}</td>
+          <td>${a.turma} (${a.escola || 'Geral'})</td>
+          <td>${a.tipo === 'Atividade Pontuada' ? '⭐ Pontuada' : (a.tipo === 'Trabalho em Grupo' ? '👥 Grupo' : '👤 Individual')}</td>
+          <td>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn btn-sm btn-primary" onclick="irParaLancamentoNotaAtividade('${a.id}')" title="Lançar Notas desta Atividade">📝 Lançar</button>
+              <button class="btn btn-sm btn-warning" onclick="prepararEdicaoAtividade('${a.id}')" title="Editar Atividade">✏️</button>
+              <button class="btn btn-sm btn-danger" onclick="excluirAtividade('${a.id}')" title="Excluir Atividade">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="7" style="text-align:center;">Nenhuma atividade cadastrada por você.</td></tr>';
+}
+
+function irParaLancamentoNotaAtividade(atvId) {
+  const atv = atividades.find(a => String(a.id) === String(atvId));
+  if (!atv) return;
+
+  // Direciona para a aba Registros
+  const btnRegistros = document.querySelector('.nav-item[data-page="registros"]');
+  if (btnRegistros) btnRegistros.click();
+
+  setTimeout(() => {
+    if (atv.tipo === 'Trabalho em Grupo') {
+      alternarModoAvaliacao('grupo');
+    } else {
+      alternarModoAvaliacao('indiv');
+      const selTurma = document.getElementById('eval-indiv-turma');
+      if (selTurma) {
+        selTurma.value = `${atv.turma}||${atv.escola}`;
+        carregarAtividadesIndivPorTurma();
+        const selAtv = document.getElementById('eval-indiv-atividade');
+        if (selAtv) selAtv.value = atv.id;
       }
-
-      salvarLocal();
-      limparFormularioAtividade();
-      renderizarTabelaAtividades();
-      popularSeletoresAvaliacao();
-      renderizarCalendarioEAtividadesData();
-    });
+    }
+  }, 100);
+}
 
     async function excluirAtividade(id) {
       if (!confirm('Deseja excluir esta atividade?')) return;
