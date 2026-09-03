@@ -1255,17 +1255,20 @@
       : `👨‍🏫 Professor de <strong>${usuarioLogado.disciplina}</strong> | ${usuarioLogado.nome}`;
   }
 
-  // Oculta itens restritos ao Admin
+  // Oculta itens de menu restritos ao Admin (Usuários, Config e Dashboard)
   const btnUsuarios = document.querySelector('.item-admin-only');
   if (btnUsuarios) btnUsuarios.style.display = !isProf ? 'flex' : 'none';
+
+  const btnConfig = document.querySelector('.nav-item[data-page="config"]');
+  if (btnConfig) btnConfig.style.display = !isProf ? 'flex' : 'none';
 
   const btnDash = document.querySelector('.nav-item[data-page="dashboard"]');
   if (btnDash) btnDash.style.display = !isProf ? 'flex' : 'none';
 
-  // Se o professor estiver no Dashboard, redireciona para Turmas
+  // Se o professor tentar acessar uma página restrita, redireciona para a aba Turmas
   if (isProf) {
-    const pageDash = document.getElementById('page-dashboard');
-    if (pageDash && pageDash.classList.contains('active')) {
+    const pageAtiva = document.querySelector('.page.active')?.id;
+    if (pageAtiva === 'page-dashboard' || pageAtiva === 'page-config' || pageAtiva === 'page-usuarios') {
       const btnTurmas = document.querySelector('.nav-item[data-page="turmas"]');
       if (btnTurmas) btnTurmas.click();
     }
@@ -2472,25 +2475,27 @@
     }
 
     function popularSeletoresAtividade() {
-      const selectEscolaForm = document.getElementById('atividade-escola');
-      const selectEscolaFiltro = document.getElementById('filtro-atv-escola');
-      if (!selectEscolaForm) return;
+  const selectEscolaForm = document.getElementById('atividade-escola');
+  const selectEscolaFiltro = document.getElementById('filtro-atv-escola');
+  if (!selectEscolaForm) return;
 
-      const escolasUnicas = [...new Set(alunos.map(a => aTrim(a.escola)).filter(Boolean))].sort();
+  // Obtém turmas permitidas para o usuário logado
+  const turmasPermitidas = obterListaTurmasUnicas();
+  const escolasUnicas = [...new Set(turmasPermitidas.map(t => t.escola))].sort();
 
-      selectEscolaForm.innerHTML = '<option value="">-- Selecione uma Escola --</option>' + 
-        escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
+  selectEscolaForm.innerHTML = '<option value="">-- Selecione uma Escola --</option>' + 
+    escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
 
-      if (selectEscolaFiltro) {
-        const valAtual = selectEscolaFiltro.value;
-        selectEscolaFiltro.innerHTML = '<option value="">Todas as Escolas</option>' + 
-          escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
-        if (escolasUnicas.includes(valAtual)) selectEscolaFiltro.value = valAtual;
-      }
+  if (selectEscolaFiltro) {
+    const valAtual = selectEscolaFiltro.value;
+    selectEscolaFiltro.innerHTML = '<option value="">Todas as Escolas</option>' + 
+      escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
+    if (escolasUnicas.includes(valAtual)) selectEscolaFiltro.value = valAtual;
+  }
 
-      atualizarTurmasEPeriodosAtividade();
-      atualizarFiltroTurmaAtividades();
-    }
+  atualizarTurmasEPeriodosAtividade();
+  atualizarFiltroTurmaAtividades();
+}
 
     function atualizarTurmasEPeriodosAtividade() {
       const escolaSelecionada = document.getElementById('atividade-escola').value;
@@ -2725,82 +2730,127 @@ function irParaLancamentoNotaAtividade(atvId) {
     }
 
     function popularSeletoresGrupos() {
-      const selectEscola = document.getElementById('grupo-escola');
-      if (!selectEscola) return;
+  const selectEscola = document.getElementById('grupo-escola');
+  if (!selectEscola) return;
 
-      const escolasUnicas = [...new Set(alunos.map(a => aTrim(a.escola)).filter(Boolean))].sort();
-      selectEscola.innerHTML = '<option value="">-- Selecione uma Escola --</option>' + 
-        escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
+  // Obtém apenas as escolas vincularas às turmas permitidas do professor
+  const turmasPermitidas = obterListaTurmasUnicas();
+  const escolasUnicas = [...new Set(turmasPermitidas.map(t => t.escola))].sort();
 
-      atualizarTurmasGrupo();
-    }
+  selectEscola.innerHTML = '<option value="">-- Selecione uma Escola --</option>' + 
+    escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
+
+  atualizarTurmasGrupo();
+}
 
     function atualizarTurmasGrupo() {
-      const escolaSel = document.getElementById('grupo-escola').value;
-      const selectTurma = document.getElementById('filtro-turma-grupo');
-      const selectPeriodo = document.getElementById('trabalho-periodo');
+  const escolaSel = document.getElementById('grupo-escola').value;
+  const selectTurma = document.getElementById('filtro-turma-grupo');
+  const selectPeriodo = document.getElementById('trabalho-periodo');
+  const selectDisc = document.getElementById('trabalho-disciplina');
 
-      if (!escolaSel) {
-        selectTurma.innerHTML = '<option value="">-- Selecione uma Escola primeiro --</option>';
-        selectTurma.disabled = true;
-        if (selectPeriodo) selectPeriodo.innerHTML = '';
-        return;
-      }
+  if (!escolaSel) {
+    selectTurma.innerHTML = '<option value="">-- Selecione uma Escola primeiro --</option>';
+    selectTurma.disabled = true;
+    if (selectPeriodo) selectPeriodo.innerHTML = '';
+    return;
+  }
 
-      if (selectPeriodo) selectPeriodo.innerHTML = obterOpcoesPeriodosPorEscola(escolaSel);
+  if (selectPeriodo) selectPeriodo.innerHTML = obterOpcoesPeriodosPorEscola(escolaSel);
 
-      const turmasFiltradas = [...new Set(
-        alunos.filter(a => aTrim(a.escola) === escolaSel).map(a => aTrim(a.turma)).filter(Boolean)
-      )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-      if (turmasFiltradas.length > 0) {
-        selectTurma.innerHTML = '<option value="">-- Escolha uma Turma --</option>' + 
-          turmasFiltradas.map(t => `<option value="${t}">${t} (${escolaSel})</option>`).join('');
-        selectTurma.disabled = false;
-      } else {
-        selectTurma.innerHTML = '<option value="">Nenhuma turma encontrada</option>';
-        selectTurma.disabled = true;
-      }
+  // Se for professor, fixa e trava a disciplina atribuída no formulário de trabalhos
+  if (usuarioLogado && usuarioLogado.perfil === 'professor' && usuarioLogado.disciplina) {
+    if (selectDisc) {
+      selectDisc.value = usuarioLogado.disciplina;
+      selectDisc.disabled = true;
     }
+  } else if (selectDisc) {
+    selectDisc.disabled = false;
+  }
+
+  const turmasPermitidas = obterListaTurmasUnicas()
+    .filter(t => t.escola === escolaSel)
+    .map(t => t.turma);
+
+  if (turmasPermitidas.length > 0) {
+    selectTurma.innerHTML = '<option value="">-- Escolha uma Turma --</option>' + 
+      turmasPermitidas.map(t => `<option value="${t}">${t} (${escolaSel})</option>`).join('');
+    selectTurma.disabled = false;
+  } else {
+    selectTurma.innerHTML = '<option value="">Nenhuma turma permitida nesta escola</option>';
+    selectTurma.disabled = true;
+  }
+}
 
     function selecionarTurmaGrupo(turma, resetAtivo = true) {
-      turmaGrupoSelecionada = turma;
-      if (resetAtivo) trabalhoAtivoId = null;
-      salvarLocal();
+  turmaGrupoSelecionada = turma;
+  if (resetAtivo) trabalhoAtivoId = null;
+  salvarLocal();
 
-      document.getElementById('card-novo-trabalho').style.display = turma ? 'block' : 'none';
-      if (!trabalhoAtivoId) {
-        document.getElementById('card-detalhes-trabalho').style.display = 'none';
-        document.getElementById('card-resumo-grupos').style.display = 'none';
-      }
-      renderizarTrabalhosDaTurma();
+  document.getElementById('card-novo-trabalho').style.display = turma ? 'block' : 'none';
+
+  // Garante o travamento da disciplina no formulário
+  const selectDisc = document.getElementById('trabalho-disciplina');
+  if (usuarioLogado && usuarioLogado.perfil === 'professor' && usuarioLogado.disciplina && selectDisc) {
+    selectDisc.value = usuarioLogado.disciplina;
+    selectDisc.disabled = true;
+  }
+
+  // Verifica se o trabalho atualmente carregado pertence à disciplina do professor
+  if (trabalhoAtivoId) {
+    const trabAtivo = trabalhos.find(t => String(t.id) === String(trabalhoAtivoId));
+    const isProf = usuarioLogado?.perfil === 'professor';
+    
+    if (!trabAtivo || (isProf && trabAtivo.disciplina !== usuarioLogado?.disciplina)) {
+      trabalhoAtivoId = null;
+      salvarLocal();
     }
+  }
+
+  if (!trabalhoAtivoId) {
+    document.getElementById('card-detalhes-trabalho').style.display = 'none';
+    document.getElementById('card-resumo-grupos').style.display = 'none';
+  }
+
+  renderizarTrabalhosDaTurma();
+}
 
     function renderizarTrabalhosDaTurma() {
-      const container = document.getElementById('container-trabalhos-ativos');
-      if (!container) return;
-      const escolaSel = document.getElementById('grupo-escola').value;
-      const trabalhosDaTurma = trabalhos.filter(t => aTrim(t.turma) === aTrim(turmaGrupoSelecionada) && (!escolaSel || aTrim(t.escola) === escolaSel));
+  const container = document.getElementById('container-trabalhos-ativos');
+  if (!container) return;
 
-      if (trabalhosDaTurma.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted);">Nenhum trabalho para esta turma.</p>';
-        return;
-      }
+  const escolaSel = document.getElementById('grupo-escola').value;
+  const isProf = usuarioLogado?.perfil === 'professor';
+  const disciplinaProf = usuarioLogado?.disciplina;
 
-      container.innerHTML = trabalhosDaTurma.map(t => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
-          <div>
-            <strong>${t.nome}</strong> 
-            <small style="color: var(--primary); font-weight:bold;">[${t.periodo || '1B'} - ${t.disciplina || 'Geral'}]</small><br>
-            <small>Entrega: ${t.data || 'Sem data'}</small>
-          </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn btn-sm btn-primary" onclick="verGruposDoTrabalho('${t.id}')">Ver Grupos</button>
-            <button class="btn btn-sm btn-danger" onclick="excluirTrabalho('${t.id}')">🗑️</button>
-          </div>
-        </div>
-      `).join('');
-    }
+  // Filtra trabalhos da turma/escola E restringe à disciplina do professor
+  const trabalhosDaTurma = trabalhos.filter(t => {
+    const matchTurma = aTrim(t.turma) === aTrim(turmaGrupoSelecionada);
+    const matchEscola = !escolaSel || aTrim(t.escola) === escolaSel;
+    const matchDisciplina = !isProf || (t.disciplina === disciplinaProf);
+
+    return matchTurma && matchEscola && matchDisciplina;
+  });
+
+  if (trabalhosDaTurma.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted);">Nenhum trabalho cadastrado para a disciplina ${isProf ? `"${disciplinaProf}"` : ''} nesta turma.</p>`;
+    return;
+  }
+
+  container.innerHTML = trabalhosDaTurma.map(t => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
+      <div>
+        <strong>${t.nome}</strong> 
+        <small style="color: var(--primary); font-weight:bold;">[${t.periodo || '1B'} - ${t.disciplina || 'Geral'}]</small><br>
+        <small>Entrega: ${t.data || 'Sem data'}</small>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn btn-sm btn-primary" onclick="verGruposDoTrabalho('${t.id}')">Ver Grupos</button>
+        <button class="btn btn-sm btn-danger" onclick="excluirTrabalho('${t.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
 
     document.getElementById('form-trabalho').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -2849,25 +2899,37 @@ function irParaLancamentoNotaAtividade(atvId) {
     });
 
     function verGruposDoTrabalho(id) {
-      trabalhoAtivoId = String(id);
-      salvarLocal();
+  const trabalho = trabalhos.find(t => String(t.id) === String(id));
+  if (!trabalho) return;
 
-      const trabalho = trabalhos.find(t => String(t.id) === String(id));
-      if (!trabalho) return;
+  // Validação de Segurança: Se for professor, não abre trabalhos de outras disciplinas
+  const isProf = usuarioLogado?.perfil === 'professor';
+  const disciplinaProf = usuarioLogado?.disciplina;
 
-      if (!trabalho.nomes_grupos) {
-        trabalho.nomes_grupos = {};
-        for (let g = 1; g <= trabalho.qtd_grupos; g++) {
-          trabalho.nomes_grupos[g] = `Grupo ${g}`;
-        }
-      }
+  if (isProf && trabalho.disciplina !== disciplinaProf) {
+    document.getElementById('card-detalhes-trabalho').style.display = 'none';
+    document.getElementById('card-resumo-grupos').style.display = 'none';
+    trabalhoAtivoId = null;
+    salvarLocal();
+    return;
+  }
 
-      document.getElementById('card-detalhes-trabalho').style.display = 'block';
-      document.getElementById('nome-trabalho-ativo').textContent = `Atribuição de Alunos: ${trabalho.nome} (${trabalho.periodo || '1B'})`;
+  trabalhoAtivoId = String(id);
+  salvarLocal();
 
-      renderizarResumoGruposLateral(trabalho);
-      renderizarTabelaAtribuicao(trabalho);
+  if (!trabalho.nomes_grupos) {
+    trabalho.nomes_grupos = {};
+    for (let g = 1; g <= trabalho.qtd_grupos; g++) {
+      trabalho.nomes_grupos[g] = `Grupo ${g}`;
     }
+  }
+
+  document.getElementById('card-detalhes-trabalho').style.display = 'block';
+  document.getElementById('nome-trabalho-ativo').textContent = `Atribuição de Alunos: ${trabalho.nome} (${trabalho.periodo || '1B'}) - ${trabalho.disciplina}`;
+
+  renderizarResumoGruposLateral(trabalho);
+  renderizarTabelaAtribuicao(trabalho);
+}
 
     function renderizarTabelaAtribuicao(trabalho) {
       const alunosDaTurma = alunos.filter(a => aTrim(a.turma) === aTrim(trabalho.turma) && (!trabalho.escola || aTrim(a.escola) === aTrim(trabalho.escola)));
