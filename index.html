@@ -2477,9 +2477,9 @@
     function popularSeletoresAtividade() {
   const selectEscolaForm = document.getElementById('atividade-escola');
   const selectEscolaFiltro = document.getElementById('filtro-atv-escola');
+  const selectDiscForm = document.getElementById('atividade-disciplina');
   if (!selectEscolaForm) return;
 
-  // Obtém turmas permitidas para o usuário logado
   const turmasPermitidas = obterListaTurmasUnicas();
   const escolasUnicas = [...new Set(turmasPermitidas.map(t => t.escola))].sort();
 
@@ -2491,6 +2491,31 @@
     selectEscolaFiltro.innerHTML = '<option value="">Todas as Escolas</option>' + 
       escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
     if (escolasUnicas.includes(valAtual)) selectEscolaFiltro.value = valAtual;
+  }
+
+  // RESTRICAO DE DISCIPLINA NO DROPDOWN
+  if (selectDiscForm) {
+    if (usuarioLogado && usuarioLogado.perfil === 'professor' && usuarioLogado.disciplina) {
+      const disc = usuarioLogado.disciplina;
+      let emojiDisc = '📚';
+      if (disc === 'Química') emojiDisc = '🧪';
+      if (disc === 'Física') emojiDisc = '⚡';
+      if (disc === 'Biologia') emojiDisc = '🧬';
+      if (disc === 'Matemática') emojiDisc = '📐';
+
+      selectDiscForm.innerHTML = `<option value="${disc}">${emojiDisc} ${disc}</option>`;
+      selectDiscForm.value = disc;
+      selectDiscForm.disabled = true;
+    } else {
+      selectDiscForm.innerHTML = `
+        <option value="">-- Selecione a Disciplina --</option>
+        <option value="Química">🧪 Química</option>
+        <option value="Física">⚡ Física</option>
+        <option value="Biologia">🧬 Biologia</option>
+        <option value="Matemática">📐 Matemática</option>
+      `;
+      selectDiscForm.disabled = false;
+    }
   }
 
   atualizarTurmasEPeriodosAtividade();
