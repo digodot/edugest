@@ -827,20 +827,29 @@
 
           <!-- MAPA DE NOTAS DO ALUNO -->
           <div class="card" style="margin-top: 20px; margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-              <h3 class="card-title" id="titulo-mapa-aluno" style="margin: 0;">📌 Mapa de Notas do Aluno</h3>
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <label class="form-label" style="margin: 0;">Consultar Aluno:</label>
-                <select id="seletor-mapa-aluno" class="form-select" onchange="renderizarMapaNotasAluno(this.value)" style="min-width: 220px;">
-                  <option value="">-- Selecione um Aluno --</option>
-                </select>
-              </div>
-            </div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+    <h3 class="card-title" id="titulo-mapa-aluno" style="margin: 0;">📌 Mapa de Notas do Aluno</h3>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <label class="form-label" style="margin: 0;">Consultar Aluno:</label>
+      <select id="seletor-mapa-aluno" class="form-select" onchange="renderizarMapaNotasAluno(this.value)" style="min-width: 220px;">
+        <option value="">-- Selecione um Aluno --</option>
+      </select>
+    </div>
+  </div>
 
-            <div id="container-mapa-aluno">
-              <p style="color: var(--text-muted); text-align: center; padding: 20px;">Selecione um aluno acima para visualizar o mapa consolidado de notas.</p>
-            </div>
-          </div>
+  <!-- Botões de Aba/Filtro por Categoria -->
+  <div id="abas-mapa-categorias" style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+    <button class="btn btn-sm btn-primary btn-aba-mapa" onclick="filtrarMapaPorCategoria('todas', this)">Todas</button>
+    <button class="btn btn-sm btn-secondary btn-aba-mapa" onclick="filtrarMapaPorCategoria('individual', this)">📄 Individuais / Provas</button>
+    <button class="btn btn-sm btn-secondary btn-aba-mapa" onclick="filtrarMapaPorCategoria('grupo', this)">👥 Trabalhos em Grupo</button>
+    <button class="btn btn-sm btn-secondary btn-aba-mapa" onclick="filtrarMapaPorCategoria('pontuada', this)">⭐ Atividades Pontuadas</button>
+    <button class="btn btn-sm btn-secondary btn-aba-mapa" onclick="filtrarMapaPorCategoria('habilidade', this)">🎯 Habilidades</button>
+  </div>
+
+  <div id="container-mapa-aluno">
+    <p style="color: var(--text-muted); text-align: center; padding: 20px;">Selecione um aluno acima para visualizar o mapa consolidado de notas.</p>
+  </div>
+</div>
 
           <!-- CALENDÁRIO & MONITOR DE PENDÊNCIAS -->
           <div class="card" style="margin-bottom: 20px;">
@@ -2134,125 +2143,144 @@
     }
 
     function carregarVisaoTurma(chaveTurmaEscola) {
-      const tbody = document.getElementById('tabela-boletim-turma');
-      if (!tbody) return;
+  const tbody = document.getElementById('tabela-boletim-turma');
+  if (!tbody) return;
 
-      if (!chaveTurmaEscola) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Selecione uma turma no filtro acima para visualizar o boletim.</td></tr>';
-        document.getElementById('turma-media-diag').textContent = '—';
-        document.getElementById('turma-total-alunos').textContent = '0';
-        document.getElementById('turma-hab-top').textContent = '—';
-        document.getElementById('turma-hab-low').textContent = '—';
-        return;
-      }
+  if (!chaveTurmaEscola) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Selecione uma turma no filtro acima para visualizar o boletim.</td></tr>';
+    document.getElementById('turma-media-diag').textContent = '—';
+    document.getElementById('turma-total-alunos').textContent = '0';
+    document.getElementById('turma-hab-top').textContent = '—';
+    document.getElementById('turma-hab-low').textContent = '—';
+    return;
+  }
 
-      const [turmaSel, escolaSel] = chaveTurmaEscola.split('||');
-      const periodoSel = document.getElementById('seletor-periodo-aba-turmas').value;
+  const [turmaSel, escolaSel] = chaveTurmaEscola.split('||');
+  const periodoSel = document.getElementById('seletor-periodo-aba-turmas').value;
 
-      const confEscola = configEscolas[escolaSel] || { pesos: PADRAO_BIMESTRAL };
-      const pRaw = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : {};
-      const pesos = {
-        indiv: pRaw.indiv !== undefined ? pRaw.indiv : 3,
-        grupo: pRaw.grupo !== undefined ? pRaw.grupo : 3,
-        pontuada: pRaw.pontuada !== undefined ? pRaw.pontuada : 2,
-        hab: pRaw.hab !== undefined ? pRaw.hab : 2
-      };
+  const isProf = usuarioLogado?.perfil === 'professor';
+  const discProf = usuarioLogado?.disciplina;
 
-      document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv})`;
-      document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo})`;
-      document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas (P: ${pesos.pontuada})`;
-      document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab})`;
-      document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv} | Grupos: ${pesos.grupo} | Pontuadas: ${pesos.pontuada} | Habilidades: ${pesos.hab}`;
+  const confEscola = configEscolas[escolaSel] || { pesos: PADRAO_BIMESTRAL };
+  const pRaw = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : {};
+  const pesos = {
+    indiv: pRaw.indiv !== undefined ? pRaw.indiv : 3,
+    grupo: pRaw.grupo !== undefined ? pRaw.grupo : 3,
+    pontuada: pRaw.pontuada !== undefined ? pRaw.pontuada : 2,
+    hab: pRaw.hab !== undefined ? pRaw.hab : 2
+  };
 
-      const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel)));
-      ordenarAlunosPorNome(alunosTurma);
+  document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv})`;
+  document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo})`;
+  document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas (P: ${pesos.pontuada})`;
+  document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab})`;
+  document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv} | Grupos: ${pesos.grupo} | Pontuadas: ${pesos.pontuada} | Habilidades: ${pesos.hab}`;
 
-      const regsTurma = registros.filter(r => aTrim(r.turma) === aTrim(turmaSel) && (!r.periodo || r.periodo === periodoSel));
+  const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel)));
+  ordenarAlunosPorNome(alunosTurma);
 
-      document.getElementById('turma-total-alunos').textContent = alunosTurma.length;
+  // Filtra apenas registros desta turma, periodo E disciplina do professor (se for prof)
+  const regsTurmaBrutos = registros.filter(r => {
+    const matchTurma = aTrim(r.turma) === aTrim(turmaSel);
+    const matchPeriodo = !r.periodo || r.periodo === periodoSel;
+    const matchDisc = !isProf || !r.disciplina || r.disciplina === discProf;
+    return matchTurma && matchPeriodo && matchDisc;
+  });
 
-      let somaDiagsTurma = 0;
-      let qtdDiagsContadas = 0;
-      const habsAcumuladas = {};
+  document.getElementById('turma-total-alunos').textContent = alunosTurma.length;
 
-      const linhasHtml = alunosTurma.map(aluno => {
-        const regsAluno = regsTurma.filter(r => r.aluno === aluno.nome);
+  let somaDiagsTurma = 0;
+  let qtdDiagsContadas = 0;
+  const habsAcumuladas = {};
 
-        const nIndiv = regsAluno.filter(r => r.tipo === 'Atividade Individual' && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
-        const medIndiv = nIndiv.length > 0 ? (nIndiv.reduce((a,b)=>a+b,0)/nIndiv.length) : null;
+  const linhasHtml = alunosTurma.map(aluno => {
+    const regsAlunoBrutos = regsTurmaBrutos.filter(r => r.aluno === aluno.nome);
+    const mapaUnicos = {};
 
-        const nGrupo = regsAluno.filter(r => r.tipo === 'Trabalho em Grupo' && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
-        const medGrupo = nGrupo.length > 0 ? (nGrupo.reduce((a,b)=>a+b,0)/nGrupo.length) : null;
+    // Deduplica e mantem rigorosamente a ultima nota atualizada de cada atividade
+    regsAlunoBrutos.forEach(r => {
+      const nomeLimpo = (r.trabalho || r.habilidade || r.tipo).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+      const chaveItem = `${r.tipo}_${r.disciplina || 'Geral'}_${nomeLimpo}`;
+      mapaUnicos[chaveItem] = r;
+    });
 
-        const nPontuada = regsAluno.filter(r => (r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada') && r.nota !== undefined && r.nota !== '').map(r => Number(r.nota));
-        const medPontuada = nPontuada.length > 0 ? (nPontuada.reduce((a,b)=>a+b,0)/nPontuada.length) : null;
+    const regsAluno = Object.values(mapaUnicos);
 
-        const regsHab = regsAluno.filter(r => r.tipo === 'Habilidade' && r.nota !== undefined && r.nota !== '');
-        const nHab = regsHab.map(r => Number(r.nota));
-        const medHab = nHab.length > 0 ? (nHab.reduce((a,b)=>a+b,0)/nHab.length) : null;
+    const nIndiv = regsAluno.filter(r => r.tipo === 'Atividade Individual' && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota)).map(r => Number(r.nota));
+    const medIndiv = nIndiv.length > 0 ? (nIndiv.reduce((a,b)=>a+b,0)/nIndiv.length) : null;
 
-        const mapHabAluno = {};
-        regsHab.forEach(r => {
-          if (!mapHabAluno[r.habilidade]) mapHabAluno[r.habilidade] = [];
-          mapHabAluno[r.habilidade].push(Number(r.nota));
+    const nGrupo = regsAluno.filter(r => r.tipo === 'Trabalho em Grupo' && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota)).map(r => Number(r.nota));
+    const medGrupo = nGrupo.length > 0 ? (nGrupo.reduce((a,b)=>a+b,0)/nGrupo.length) : null;
 
-          if (!habsAcumuladas[r.habilidade]) habsAcumuladas[r.habilidade] = [];
-          habsAcumuladas[r.habilidade].push(Number(r.nota));
-        });
+    const nPontuada = regsAluno.filter(r => (r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada') && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota)).map(r => Number(r.nota));
+    const medPontuada = nPontuada.length > 0 ? (nPontuada.reduce((a,b)=>a+b,0)/nPontuada.length) : null;
 
-        let melhorHab = '—', piorHab = '—', maxH = -1, minH = 11;
-        Object.keys(mapHabAluno).forEach(h => {
-          const medH = mapHabAluno[h].reduce((a,b)=>a+b,0)/mapHabAluno[h].length;
-          if (medH > maxH) { maxH = medH; melhorHab = h; }
-          if (medH < minH) { minH = medH; piorHab = h; }
-        });
+    const regsHab = regsAluno.filter(r => r.tipo === 'Habilidade' && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota));
+    const nHab = regsHab.map(r => Number(r.nota));
+    const medHab = nHab.length > 0 ? (nHab.reduce((a,b)=>a+b,0)/nHab.length) : null;
 
-        // CÁLCULO DA MÉDIA UNIFICADA PONDERADA
-        let numPonderado = 0, denPonderado = 0;
-        if (medIndiv !== null && pesos.indiv > 0) { numPonderado += medIndiv * pesos.indiv; denPonderado += pesos.indiv; }
-        if (medGrupo !== null && pesos.grupo > 0) { numPonderado += medGrupo * pesos.grupo; denPonderado += pesos.grupo; }
-        if (medPontuada !== null && pesos.pontuada > 0) { numPonderado += medPontuada * pesos.pontuada; denPonderado += pesos.pontuada; }
-        if (medHab !== null && pesos.hab > 0) { numPonderado += medHab * pesos.hab; denPonderado += pesos.hab; }
+    const mapHabAluno = {};
+    regsHab.forEach(r => {
+      if (!mapHabAluno[r.habilidade]) mapHabAluno[r.habilidade] = [];
+      mapHabAluno[r.habilidade].push(Number(r.nota));
 
-        let notaUnificadaFinal = denPonderado > 0 ? (numPonderado / denPonderado) : null;
+      if (!habsAcumuladas[r.habilidade]) habsAcumuladas[r.habilidade] = [];
+      habsAcumuladas[r.habilidade].push(Number(r.nota));
+    });
 
-        if (notaUnificadaFinal !== null) {
-          somaDiagsTurma += notaUnificadaFinal;
-          qtdDiagsContadas++;
-        }
+    let melhorHab = '—', piorHab = '—', maxH = -1, minH = 11;
+    Object.keys(mapHabAluno).forEach(h => {
+      const medH = mapHabAluno[h].reduce((a,b)=>a+b,0)/mapHabAluno[h].length;
+      if (medH > maxH) { maxH = medH; melhorHab = h; }
+      if (medH < minH) { minH = medH; piorHab = h; }
+    });
 
-        return `
-          <tr>
-            <td><strong>${aluno.nome}</strong></td>
-            <td>${aluno.matricula || '—'}</td>
-            <td>${medIndiv !== null ? medIndiv.toFixed(1) : '—'}</td>
-            <td>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
-            <td>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
-            <td>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
-            <td style="background: #e0e7ff; text-align: center;">
-              <strong style="font-size: 16px; color: ${notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
-                ${notaUnificadaFinal !== null ? notaUnificadaFinal.toFixed(1) : '—'}
-              </strong>
-            </td>
-            <td><span class="badge-hab badge-best">${melhorHab}</span></td>
-            <td><span class="badge-hab badge-work">${piorHab}</span></td>
-          </tr>
-        `;
-      }).join('');
+    // CÁLCULO DA MÉDIA UNIFICADA PONDERADA
+    let numPonderado = 0, denPonderado = 0;
+    if (medIndiv !== null && pesos.indiv > 0) { numPonderado += medIndiv * pesos.indiv; denPonderado += pesos.indiv; }
+    if (medGrupo !== null && pesos.grupo > 0) { numPonderado += medGrupo * pesos.grupo; denPonderado += pesos.grupo; }
+    if (medPontuada !== null && pesos.pontuada > 0) { numPonderado += medPontuada * pesos.pontuada; denPonderado += pesos.pontuada; }
+    if (medHab !== null && pesos.hab > 0) { numPonderado += medHab * pesos.hab; denPonderado += pesos.hab; }
 
-      tbody.innerHTML = linhasHtml || '<tr><td colspan="9" style="text-align: center;">Nenhum aluno nesta turma.</td></tr>';
-      document.getElementById('turma-media-diag').textContent = qtdDiagsContadas > 0 ? (somaDiagsTurma / qtdDiagsContadas).toFixed(1) : '—';
+    let notaUnificadaFinal = denPonderado > 0 ? (numPonderado / denPonderado) : null;
 
-      let habTopTurma = '—', habLowTurma = '—', maxHT = -1, minHT = 11;
-      Object.keys(habsAcumuladas).forEach(h => {
-        const medHT = habsAcumuladas[h].reduce((a,b)=>a+b,0)/habsAcumuladas[h].length;
-        if (medHT > maxHT) { maxHT = medHT; habTopTurma = h; }
-        if (medHT < minHT) { minHT = medHT; habLowTurma = h; }
-      });
-
-      document.getElementById('turma-hab-top').textContent = habTopTurma;
-      document.getElementById('turma-hab-low').textContent = habLowTurma;
+    if (notaUnificadaFinal !== null) {
+      somaDiagsTurma += notaUnificadaFinal;
+      qtdDiagsContadas++;
     }
+
+    return `
+      <tr>
+        <td><strong>${aluno.nome}</strong></td>
+        <td>${aluno.matricula || '—'}</td>
+        <td>${medIndiv !== null ? medIndiv.toFixed(1) : '—'}</td>
+        <td>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
+        <td>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
+        <td>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
+        <td style="background: #e0e7ff; text-align: center;">
+          <strong style="font-size: 16px; color: ${notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
+            ${notaUnificadaFinal !== null ? notaUnificadaFinal.toFixed(1) : '—'}
+          </strong>
+        </td>
+        <td><span class="badge-hab badge-best">${melhorHab}</span></td>
+        <td><span class="badge-hab badge-work">${piorHab}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = linhasHtml || '<tr><td colspan="9" style="text-align: center;">Nenhum aluno nesta turma.</td></tr>';
+  document.getElementById('turma-media-diag').textContent = qtdDiagsContadas > 0 ? (somaDiagsTurma / qtdDiagsContadas).toFixed(1) : '—';
+
+  let habTopTurma = '—', habLowTurma = '—', maxHT = -1, minHT = 11;
+  Object.keys(habsAcumuladas).forEach(h => {
+    const medHT = habsAcumuladas[h].reduce((a,b)=>a+b,0)/habsAcumuladas[h].length;
+    if (medHT > maxHT) { maxHT = medHT; habTopTurma = h; }
+    if (medHT < minHT) { minHT = medHT; habLowTurma = h; }
+  });
+
+  document.getElementById('turma-hab-top').textContent = habTopTurma;
+  document.getElementById('turma-hab-low').textContent = habLowTurma;
+}
 
     function recalcularEAtualizarTurma() {
       const select = document.getElementById('seletor-aba-turmas');
@@ -3693,70 +3721,104 @@
       }
     }
 
-    function renderizarMapaNotasAluno(nomeAluno) {
-      const container = document.getElementById('container-mapa-aluno');
-      const titulo = document.getElementById('titulo-mapa-aluno');
+    let categoriaMapaAtiva = 'todas';
 
-      if (!nomeAluno) {
-        titulo.textContent = '📌 Mapa de Notas do Aluno';
-        container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Selecione um aluno acima para visualizar o mapa consolidado de notas.</p>';
-        return;
-      }
+function filtrarMapaPorCategoria(cat, btnElement) {
+  categoriaMapaAtiva = cat;
+  
+  // Estiliza os botões de aba
+  document.querySelectorAll('.btn-aba-mapa').forEach(btn => {
+    btn.className = 'btn btn-sm btn-secondary btn-aba-mapa';
+  });
+  if (btnElement) {
+    btnElement.className = 'btn btn-sm btn-primary btn-aba-mapa';
+  }
 
-      titulo.textContent = `📌 Mapa de Notas Atualizadas: ${nomeAluno}`;
+  const select = document.getElementById('seletor-mapa-aluno');
+  if (select && select.value) {
+    renderizarMapaNotasAluno(select.value);
+  }
+}
 
-      const regsAluno = registros.filter(r => r.aluno === nomeAluno);
+function renderizarMapaNotasAluno(nomeAluno) {
+  const container = document.getElementById('container-mapa-aluno');
+  const titulo = document.getElementById('titulo-mapa-aluno');
 
-      if (regsAluno.length === 0) {
-        container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhuma nota lançada para <strong>${nomeAluno}</strong> até o momento.</p>`;
-        return;
-      }
+  if (!nomeAluno) {
+    titulo.textContent = '📌 Mapa de Notas do Aluno';
+    container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Selecione um aluno acima para visualizar o mapa consolidado de notas.</p>';
+    return;
+  }
 
-      const ultimasNotas = {};
+  titulo.textContent = `📌 Mapa de Notas Atualizadas: ${nomeAluno}`;
 
-      regsAluno.forEach(r => {
-        const chaveChave = `${r.periodo || '1B'}_${r.disciplina || 'Geral'}_${r.tipo}_${r.trabalho || r.habilidade || 'Geral'}`;
-        ultimasNotas[chaveChave] = r;
-      });
+  const regsAluno = registros.filter(r => r.aluno === nomeAluno);
 
-      const listaMapa = Object.values(ultimasNotas);
+  if (regsAluno.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhuma nota lançada para <strong>${nomeAluno}</strong> até o momento.</p>`;
+    return;
+  }
 
-      let htmlCards = `
-        <div style="margin-bottom: 15px; font-size: 13px; color: var(--text-muted);">
-          Exibindo apenas as <strong>notas consolidadas atuais</strong> por componente (${listaMapa.length} avaliações no mapa):
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">
-      `;
+  const ultimasNotas = {};
+  regsAluno.forEach(r => {
+    const chaveChave = `${r.periodo || '1B'}_${r.disciplina || 'Geral'}_${r.tipo}_${r.trabalho || r.habilidade || 'Geral'}`;
+    ultimasNotas[chaveChave] = r;
+  });
 
-      listaMapa.forEach(r => {
-        const notaVal = Number(r.nota);
-        const corNota = notaVal >= 6 ? 'var(--success)' : 'var(--danger)';
+  let listaMapa = Object.values(ultimasNotas);
 
-        htmlCards += `
-          <div class="nota-card-item">
-            <div style="flex: 1; padding-right: 10px;">
-              <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
-                <span class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 2px 6px;">${r.periodo || '1B'}</span>
-                <span style="font-size: 11px; font-weight: bold; color: var(--primary);">${r.disciplina || 'Geral'}</span>
-              </div>
-              <strong style="font-size: 14px; display: block;">${r.trabalho || r.habilidade || r.tipo}</strong>
-              <small style="color: var(--text-muted); font-size: 11px;">${r.tipo} • Atualizado em: ${r.data || '—'}</small>
-              ${r.observacao ? `<div style="font-size: 12px; color: var(--text); margin-top: 4px;"><i>"${r.observacao}"</i></div>` : ''}
-            </div>
-            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-              <span style="font-size: 22px; font-weight: 800; color: ${corNota};">${r.nota !== undefined ? r.nota : '—'}</span>
-              <div style="display: flex; gap: 4px;">
-                <button class="btn btn-sm btn-warning" style="padding: 2px 6px;" onclick="editarRegistroAluno('${r.id}')" title="Editar Nota">✏️</button>
-                <button class="btn btn-sm btn-danger" style="padding: 2px 6px;" onclick="excluirRegistro('${r.id}')" title="Excluir Nota">🗑️</button>
-              </div>
-            </div>
+  // Filtra por aba/categoria selecionada
+  if (categoriaMapaAtiva === 'individual') {
+    listaMapa = listaMapa.filter(r => r.tipo === 'Atividade Individual');
+  } else if (categoriaMapaAtiva === 'grupo') {
+    listaMapa = listaMapa.filter(r => r.tipo === 'Trabalho em Grupo');
+  } else if (categoriaMapaAtiva === 'pontuada') {
+    listaMapa = listaMapa.filter(r => r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada');
+  } else if (categoriaMapaAtiva === 'habilidade') {
+    listaMapa = listaMapa.filter(r => r.tipo === 'Habilidade');
+  }
+
+  if (listaMapa.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhuma avaliação encontrada nesta categoria para este aluno.</p>`;
+    return;
+  }
+
+  let htmlCards = `
+    <div style="margin-bottom: 15px; font-size: 13px; color: var(--text-muted);">
+      Exibindo <strong>${listaMapa.length}</strong> avaliação(ões) nesta categoria:
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">
+  `;
+
+  listaMapa.forEach(r => {
+    const notaVal = Number(r.nota);
+    const corNota = notaVal >= 6 ? 'var(--success)' : 'var(--danger)';
+
+    htmlCards += `
+      <div class="nota-card-item">
+        <div style="flex: 1; padding-right: 10px;">
+          <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
+            <span class="btn btn-sm btn-secondary" style="font-size: 10px; padding: 2px 6px;">${r.periodo || '1B'}</span>
+            <span style="font-size: 11px; font-weight: bold; color: var(--primary);">${r.disciplina || 'Geral'}</span>
           </div>
-        `;
-      });
+          <strong style="font-size: 14px; display: block;">${r.trabalho || r.habilidade || r.tipo}</strong>
+          <small style="color: var(--text-muted); font-size: 11px;">${r.tipo} • Atualizado em: ${r.data || '—'}</small>
+          ${r.observacao ? `<div style="font-size: 12px; color: var(--text); margin-top: 4px;"><i>"${r.observacao}"</i></div>` : ''}
+        </div>
+        <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+          <span style="font-size: 22px; font-weight: 800; color: ${corNota};">${r.nota !== undefined ? r.nota : '—'}</span>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-sm btn-warning" style="padding: 2px 6px;" onclick="editarRegistroAluno('${r.id}')" title="Editar Nota">✏️</button>
+            <button class="btn btn-sm btn-danger" style="padding: 2px 6px;" onclick="excluirRegistro('${r.id}')" title="Excluir Nota">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
 
-      htmlCards += `</div>`;
-      container.innerHTML = htmlCards;
-    }
+  htmlCards += `</div>`;
+  container.innerHTML = htmlCards;
+}
 
     document.getElementById('form-eval-indiv').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4473,6 +4535,19 @@
         alert(`❌ Erro: ${msg}`);
       }
     }
+    async function limparRegistrosOrfaosDoAluno(nomeAluno) {
+  if (!confirm(`Deseja realizar a limpeza de histórico e registros duplicados de "${nomeAluno}"?`)) return;
+
+  const regsRemover = registros.filter(r => r.aluno === nomeAluno);
+  for (const r of regsRemover) {
+    if (r.id) await api(`registros/${r.id}`, { method: 'DELETE' });
+  }
+
+  registros = registros.filter(r => r.aluno !== nomeAluno);
+  salvarLocal();
+  alert(`✅ Registros antigos de ${nomeAluno} foram limpos com sucesso! Pode realizar um novo lançamento limpo.`);
+  atualizarViews();
+}
   </script>
 </body>
 </html>
