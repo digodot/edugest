@@ -2252,25 +2252,39 @@
       if (medH < minH) { minH = medH; piorHab = h; }
     });
 
-    // CÁLCULO DA MÉDIA UNIFICADA PONDERADA
-    let numPonderado = 0, denPonderado = 0;
-    if (medIndiv !== null && pesos.indiv > 0) { numPonderado += medIndiv * pesos.indiv; denPonderado += pesos.indiv; }
-    if (medGrupo !== null && pesos.grupo > 0) { numPonderado += medGrupo * pesos.grupo; denPonderado += pesos.grupo; }
-    if (medPontuada !== null && pesos.pontuada > 0) { numPonderado += medPontuada * pesos.pontuada; denPonderado += pesos.pontuada; }
-    if (medHab !== null && pesos.hab > 0) { numPonderado += medHab * pesos.hab; denPonderado += pesos.hab; }
+    // CÁLCULO DA MÉDIA UNIFICADA PONDERADA (Ponderação Direta Decimal)
+    let notaUnificadaFinal = null;
+    let possuiAvaliacaoLancada = false;
+    let somaPontos = 0;
 
-    let notaUnificadaFinal = denPonderado > 0 ? (numPonderado / denPonderado) : null;
+    if (medIndiv !== null && pesos.indiv > 0) {
+      somaPontos += medIndiv * (pesos.indiv / 10);
+      possuiAvaliacaoLancada = true;
+    }
+    if (medGrupo !== null && pesos.grupo > 0) {
+      somaPontos += medGrupo * (pesos.grupo / 10);
+      possuiAvaliacaoLancada = true;
+    }
+    if (medPontuada !== null && pesos.pontuada > 0) {
+      somaPontos += medPontuada * (pesos.pontuada / 10);
+      possuiAvaliacaoLancada = true;
+    }
+    if (medHab !== null && pesos.hab > 0) {
+      somaPontos += medHab * (pesos.hab / 10);
+      possuiAvaliacaoLancada = true;
+    }
 
-    if (notaUnificadaFinal !== null) {
+    if (possuiAvaliacaoLancada) {
+      notaUnificadaFinal = somaPontos;
       somaDiagsTurma += notaUnificadaFinal;
       qtdDiagsContadas++;
     }
 
     const resumoFinalList = [];
-    if (medIndiv !== null) resumoFinalList.push({ trabalho: `Provas/Individuais (Peso ${pesos.indiv})`, nota: medIndiv });
-    if (medGrupo !== null) resumoFinalList.push({ trabalho: `Trabalho em Grupo (Peso ${pesos.grupo})`, nota: medGrupo });
-    if (medPontuada !== null) resumoFinalList.push({ trabalho: `Atividades Pontuadas (Peso ${pesos.pontuada})`, nota: medPontuada });
-    if (medHab !== null) resumoFinalList.push({ trabalho: `Habilidades (Peso ${pesos.hab})`, nota: medHab });
+    if (medIndiv !== null) resumoFinalList.push({ trabalho: `Provas/Individuais (Peso ${pesos.indiv})`, nota: medIndiv * (pesos.indiv / 10) });
+    if (medGrupo !== null) resumoFinalList.push({ trabalho: `Trabalho em Grupo (Peso ${pesos.grupo})`, nota: medGrupo * (pesos.grupo / 10) });
+    if (medPontuada !== null) resumoFinalList.push({ trabalho: `Atividades Pontuadas (Peso ${pesos.pontuada})`, nota: medPontuada * (pesos.pontuada / 10) });
+    if (medHab !== null) resumoFinalList.push({ trabalho: `Habilidades (Peso ${pesos.hab})`, nota: medHab * (pesos.hab / 10) });
 
     return `
       <tr>
@@ -2280,7 +2294,7 @@
         <td ${gerarTooltipDetalhamento(regsGrupo, 'Trabalho em Grupo')}>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
         <td ${gerarTooltipDetalhamento(regsPontuada, 'Atividades Pontuadas')}>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
         <td ${gerarTooltipDetalhamento(regsHab, 'Habilidades')}>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
-        <td style="background: #e0e7ff; text-align: center;" ${gerarTooltipDetalhamento(resumoFinalList, 'Média Unificada')}>
+        <td style="background: #e0e7ff; text-align: center;" ${gerarTooltipDetalhamento(resumoFinalList, 'Pontos na Média Unificada')}>
           <strong style="font-size: 16px; color: ${notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
             ${notaUnificadaFinal !== null ? notaUnificadaFinal.toFixed(1) : '—'}
           </strong>
