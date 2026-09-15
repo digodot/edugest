@@ -2176,10 +2176,17 @@
   document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab})`;
   document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv} | Grupos: ${pesos.grupo} | Pontuadas: ${pesos.pontuada} | Habilidades: ${pesos.hab}`;
 
+  // 1. Mapeia os tipos de atividades atuais para sincronização dinâmica
+  const mapaTiposAtividades = {};
+  atividades.forEach(a => {
+    if (a.titulo) {
+      mapaTiposAtividades[a.titulo.trim().toLowerCase()] = a.tipo;
+    }
+  });
+
   const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && (!escolaSel || aTrim(a.escola) === aTrim(escolaSel)));
   ordenarAlunosPorNome(alunosTurma);
 
-  // Filtra apenas registros desta turma, periodo E disciplina do professor (se for prof)
   const regsTurmaBrutos = registros.filter(r => {
     const matchTurma = aTrim(r.turma) === aTrim(turmaSel);
     const matchPeriodo = !r.periodo || r.periodo === periodoSel;
@@ -2193,31 +2200,41 @@
   let qtdDiagsContadas = 0;
   const habsAcumuladas = {};
 
+  const gerarTooltipDetalhamento = (listaRegs, rotulo) => {
+    if (!listaRegs || listaRegs.length === 0) return '';
+    const detalhes = listaRegs.map(r => `• ${r.trabalho || r.habilidade || r.tipo}: ${Number(r.nota).toFixed(1)}`).join('&#10;');
+    return `title="COMPOSIÇÃO DE ${rotulo.toUpperCase()}:&#10;${detalhes}" style="cursor: pointer; text-decoration: underline dotted var(--primary);"`;
+  };
+
   const linhasHtml = alunosTurma.map(aluno => {
     const regsAlunoBrutos = regsTurmaBrutos.filter(r => r.aluno === aluno.nome);
     const mapaUnicos = {};
 
-    // Deduplica e mantem rigorosamente a ultima nota atualizada de cada atividade
     regsAlunoBrutos.forEach(r => {
       const nomeLimpo = (r.trabalho || r.habilidade || r.tipo).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+      
+      // Ajusta o tipo do registro caso a atividade tenha sido alterada para Pontuada/Individual
+      if (mapaTiposAtividades[nomeLimpo]) {
+        r.tipo = mapaTiposAtividades[nomeLimpo];
+      }
+
       const chaveItem = `${r.tipo}_${r.disciplina || 'Geral'}_${nomeLimpo}`;
       mapaUnicos[chaveItem] = r;
     });
 
     const regsAluno = Object.values(mapaUnicos);
 
-    const nIndiv = regsAluno.filter(r => r.tipo === 'Atividade Individual' && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota)).map(r => Number(r.nota));
-    const medIndiv = nIndiv.length > 0 ? (nIndiv.reduce((a,b)=>a+b,0)/nIndiv.length) : null;
+    const regsIndiv = regsAluno.filter(r => (r.tipo === 'Atividade Individual' || r.tipo === 'Individual') && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota));
+    const medIndiv = regsIndiv.length > 0 ? (regsIndiv.reduce((a,b)=>a+Number(b.nota),0)/regsIndiv.length) : null;
 
-    const nGrupo = regsAluno.filter(r => r.tipo === 'Trabalho em Grupo' && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota)).map(r => Number(r.nota));
-    const medGrupo = nGrupo.length > 0 ? (nGrupo.reduce((a,b)=>a+b,0)/nGrupo.length) : null;
+    const regsGrupo = regsAluno.filter(r => (r.tipo === 'Trabalho em Grupo' || r.tipo === 'Grupo') && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota));
+    const medGrupo = regsGrupo.length > 0 ? (regsGrupo.reduce((a,b)=>a+Number(b.nota),0)/regsGrupo.length) : null;
 
-    const nPontuada = regsAluno.filter(r => (r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada') && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota)).map(r => Number(r.nota));
-    const medPontuada = nPontuada.length > 0 ? (nPontuada.reduce((a,b)=>a+b,0)/nPontuada.length) : null;
+    const regsPontuada = regsAluno.filter(r => (r.tipo === 'Atividade Pontuada' || r.tipo === 'Pontuada' || (r.tipo && r.tipo.toLowerCase().includes('pontuada'))) && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota));
+    const medPontuada = regsPontuada.length > 0 ? (regsPontuada.reduce((a,b)=>a+Number(b.nota),0)/regsPontuada.length) : null;
 
     const regsHab = regsAluno.filter(r => r.tipo === 'Habilidade' && r.nota !== undefined && r.nota !== '' && !isNaN(r.nota));
-    const nHab = regsHab.map(r => Number(r.nota));
-    const medHab = nHab.length > 0 ? (nHab.reduce((a,b)=>a+b,0)/nHab.length) : null;
+    const medHab = regsHab.length > 0 ? (regsHab.reduce((a,b)=>a+Number(b.nota),0)/regsHab.length) : null;
 
     const mapHabAluno = {};
     regsHab.forEach(r => {
@@ -2249,15 +2266,21 @@
       qtdDiagsContadas++;
     }
 
+    const resumoFinalList = [];
+    if (medIndiv !== null) resumoFinalList.push({ trabalho: `Provas/Individuais (Peso ${pesos.indiv})`, nota: medIndiv });
+    if (medGrupo !== null) resumoFinalList.push({ trabalho: `Trabalho em Grupo (Peso ${pesos.grupo})`, nota: medGrupo });
+    if (medPontuada !== null) resumoFinalList.push({ trabalho: `Atividades Pontuadas (Peso ${pesos.pontuada})`, nota: medPontuada });
+    if (medHab !== null) resumoFinalList.push({ trabalho: `Habilidades (Peso ${pesos.hab})`, nota: medHab });
+
     return `
       <tr>
         <td><strong>${aluno.nome}</strong></td>
         <td>${aluno.matricula || '—'}</td>
-        <td>${medIndiv !== null ? medIndiv.toFixed(1) : '—'}</td>
-        <td>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
-        <td>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
-        <td>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
-        <td style="background: #e0e7ff; text-align: center;">
+        <td ${gerarTooltipDetalhamento(regsIndiv, 'Provas / Individual')}>${medIndiv !== null ? medIndiv.toFixed(1) : '—'}</td>
+        <td ${gerarTooltipDetalhamento(regsGrupo, 'Trabalho em Grupo')}>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
+        <td ${gerarTooltipDetalhamento(regsPontuada, 'Atividades Pontuadas')}>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
+        <td ${gerarTooltipDetalhamento(regsHab, 'Habilidades')}>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
+        <td style="background: #e0e7ff; text-align: center;" ${gerarTooltipDetalhamento(resumoFinalList, 'Média Unificada')}>
           <strong style="font-size: 16px; color: ${notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
             ${notaUnificadaFinal !== null ? notaUnificadaFinal.toFixed(1) : '—'}
           </strong>
@@ -2828,51 +2851,69 @@
     }
 
     document.getElementById('form-atividade').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const idEdit = document.getElementById('atividade-id-edit').value;
-      const tipoAtv = document.getElementById('atividade-tipo').value;
+  e.preventDefault();
+  const idEdit = document.getElementById('atividade-id-edit').value;
+  const tipoAtv = document.getElementById('atividade-tipo').value;
 
-      const tipoFormatado = tipoAtv === 'Pontuada' ? 'Atividade Pontuada' : (tipoAtv === 'Grupo' ? 'Trabalho em Grupo' : 'Atividade Individual');
+  const tipoFormatado = (tipoAtv === 'Pontuada' || tipoAtv === 'Atividade Pontuada') 
+    ? 'Atividade Pontuada' 
+    : (tipoAtv === 'Grupo' || tipoAtv === 'Trabalho em Grupo' ? 'Trabalho em Grupo' : 'Atividade Individual');
 
-      if (idEdit) {
-        const atv = atividades.find(a => String(a.id) === String(idEdit));
-        if (atv) {
-          atv.escola = document.getElementById('atividade-escola').value;
-          atv.turma = document.getElementById('atividade-turma').value;
-          atv.periodo = document.getElementById('atividade-periodo').value;
-          atv.disciplina = document.getElementById('atividade-disciplina').value;
-          atv.titulo = document.getElementById('atividade-titulo').value.trim();
-          atv.tipo = tipoFormatado;
-          atv.data = document.getElementById('atividade-data').value;
-          atv.valor = document.getElementById('atividade-valor').value;
+  if (idEdit) {
+    const atv = atividades.find(a => String(a.id) === String(idEdit));
+    if (atv) {
+      const tituloAntigo = atv.titulo;
 
-          await api(`atividades/${atv.id}`, { method: 'PUT', body: JSON.stringify(atv) });
-          alert('✅ Atividade atualizada no Firebase!');
+      atv.escola = document.getElementById('atividade-escola').value;
+      atv.turma = document.getElementById('atividade-turma').value;
+      atv.periodo = document.getElementById('atividade-periodo').value;
+      atv.disciplina = document.getElementById('atividade-disciplina').value;
+      atv.titulo = document.getElementById('atividade-titulo').value.trim();
+      atv.tipo = tipoFormatado;
+      atv.data = document.getElementById('atividade-data').value;
+      atv.valor = document.getElementById('atividade-valor').value;
+
+      // 1. Atualiza a atividade cadastrada
+      await api(`atividades/${atv.id}`, { method: 'PUT', body: JSON.stringify(atv) });
+
+      // 2. SINCRONIZAÇÃO AUTOMÁTICA: Atualiza o tipo nos registros de notas já lançados
+      const registrosAfetados = registros.filter(r => 
+        r.trabalho && r.trabalho.toLowerCase().includes(tituloAntigo.toLowerCase())
+      );
+
+      for (const reg of registrosAfetados) {
+        reg.tipo = tipoFormatado;
+        if (reg.id) {
+          await api(`registros/${reg.id}`, { method: 'PUT', body: JSON.stringify(reg) });
         }
-      } else {
-        const novaAtividade = {
-          escola: document.getElementById('atividade-escola').value,
-          turma: document.getElementById('atividade-turma').value,
-          periodo: document.getElementById('atividade-periodo').value,
-          disciplina: document.getElementById('atividade-disciplina').value,
-          titulo: document.getElementById('atividade-titulo').value.trim(),
-          tipo: tipoFormatado,
-          data: document.getElementById('atividade-data').value,
-          valor: document.getElementById('atividade-valor').value,
-          criadorEmail: usuarioLogado ? usuarioLogado.email : 'admin'
-        };
-
-        const res = await api('atividades', { method: 'POST', body: JSON.stringify(novaAtividade) });
-        atividades.push(res);
-        alert('✅ Atividade salva no Firebase!');
       }
 
-      salvarLocal();
-      limparFormularioAtividade();
-      renderizarTabelaAtividades();
-      popularSeletoresAvaliacao();
-      renderizarCalendarioEAtividadesData();
-    });
+      alert('✅ Atividade e histórico de notas sincronizados com sucesso!');
+    }
+  } else {
+    const novaAtividade = {
+      escola: document.getElementById('atividade-escola').value,
+      turma: document.getElementById('atividade-turma').value,
+      periodo: document.getElementById('atividade-periodo').value,
+      disciplina: document.getElementById('atividade-disciplina').value,
+      titulo: document.getElementById('atividade-titulo').value.trim(),
+      tipo: tipoFormatado,
+      data: document.getElementById('atividade-data').value,
+      valor: document.getElementById('atividade-valor').value,
+      criadorEmail: usuarioLogado ? usuarioLogado.email : 'admin'
+    };
+
+    const res = await api('atividades', { method: 'POST', body: JSON.stringify(novaAtividade) });
+    atividades.push(res);
+    alert('✅ Atividade salva com sucesso!');
+  }
+
+  salvarLocal();
+  limparFormularioAtividade();
+  renderizarTabelaAtividades();
+  popularSeletoresAvaliacao();
+  renderizarCalendarioEAtividadesData();
+});
 
     async function excluirAtividade(id) {
       if (!confirm('Deseja excluir esta atividade?')) return;
