@@ -194,16 +194,18 @@
         </div>
       </div>
       <nav class="nav">
-        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span><span>Dashboard</span></button>
-        <button class="nav-item" data-page="turmas"><span class="nav-icon">🏫</span><span>Turmas</span></button>
-        <button class="nav-item" data-page="alunos"><span class="nav-icon">👥</span><span>Alunos</span></button>
-        <button class="nav-item" data-page="atividades"><span class="nav-icon">📑</span><span>Atividades</span></button>
-        <button class="nav-item" data-page="grupos"><span class="nav-icon">👨‍👩‍👧‍👦</span><span>Grupos</span></button>
-        <button class="nav-item" data-page="registros"><span class="nav-icon">📝</span><span>Registros</span></button>
-        <button class="nav-item" data-page="relatorios"><span class="nav-icon">📊</span><span>Relatórios</span></button>
-        <button class="nav-item item-admin-only" data-page="usuarios" style="display: none;"><span class="nav-icon">👤</span><span>Usuários</span></button>
-        <button class="nav-item" data-page="config"><span class="nav-icon">⚙️</span><span>Config</span></button>
-      </nav>
+  <button class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span><span>Dashboard</span></button>
+  <button class="nav-item" data-page="turmas"><span class="nav-icon">🏫</span><span>Turmas</span></button>
+  <!-- NOVA ABA BOLETIM -->
+  <button class="nav-item" data-page="boletim"><span class="nav-icon">📋</span><span>Boletim</span></button>
+  <button class="nav-item" data-page="alunos"><span class="nav-icon">👥</span><span>Alunos</span></button>
+  <button class="nav-item" data-page="atividades"><span class="nav-icon">📑</span><span>Atividades</span></button>
+  <button class="nav-item" data-page="grupos"><span class="nav-icon">👨‍👩‍👧‍👦</span><span>Grupos</span></button>
+  <button class="nav-item" data-page="registros"><span class="nav-icon">📝</span><span>Registros</span></button>
+  <button class="nav-item" data-page="relatorios"><span class="nav-icon">📊</span><span>Relatórios</span></button>
+  <button class="nav-item item-admin-only" data-page="usuarios" style="display: none;"><span class="nav-icon">👤</span><span>Usuários</span></button>
+  <button class="nav-item" data-page="config"><span class="nav-icon">⚙️</span><span>Config</span></button>
+</nav>
     </aside>
 
     <main class="main">
@@ -414,7 +416,47 @@
             </div>
           </div>
         </section>
+<!-- NOVA ABA BOLETIM INTERATIVO -->
+<section id="page-boletim" class="page">
+  <div class="card" style="margin-bottom: 20px;">
+    <h3 class="card-title">📋 Boletim de Notas Editável por Turma</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+      <div style="flex: 1; min-width: 180px;">
+        <label class="form-label">Escola *</label>
+        <select id="boletim-filtro-escola" class="form-select" onchange="atualizarTurmasAbaBoletim()"></select>
+      </div>
+      <div style="flex: 1; min-width: 180px;">
+        <label class="form-label">Turma *</label>
+        <select id="boletim-filtro-turma" class="form-select" onchange="carregarMatrizBoletim()"></select>
+      </div>
+      <div style="flex: 1; min-width: 150px;">
+        <label class="form-label">Período *</label>
+        <select id="boletim-filtro-periodo" class="form-select" onchange="carregarMatrizBoletim()"></select>
+      </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label class="form-label">Disciplina *</label>
+        <select id="boletim-filtro-disciplina" class="form-select" onchange="carregarMatrizBoletim()">
+          <option value="Química">🧪 Química</option>
+          <option value="Física">⚡ Física</option>
+          <option value="Biologia">🧬 Biologia</option>
+          <option value="Matemática">📐 Matemática</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="salvarAlteracoesBoletimEmLote()">💾 Salvar Notas Alteradas</button>
+    </div>
+  </div>
 
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead id="head-matriz-boletim"></thead>
+        <tbody id="body-matriz-boletim">
+          <tr><td colspan="5" style="text-align: center;">Selecione uma escola e turma acima para visualizar o boletim.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
         <!-- ABA ATIVIDADES -->
         <section id="page-atividades" class="page">
           <div class="grid">
@@ -1050,47 +1092,52 @@
         </section>
 
         <!-- ABA CONFIG -->
-        <section id="page-config" class="page">
-          <div class="card">
-            <h3 class="card-title">⚙️ Configuração de Regime e Pesos por Escola</h3>
-            <p style="margin-bottom: 20px; color: var(--text-muted);">Configure o regime e os pesos de cada escola:</p>
-            
-            <div class="form-grid" style="margin-bottom: 20px;">
-              <div class="form-group">
-                <label class="form-label">Selecione a Escola *</label>
-                <select id="config-seletor-escola" class="form-select" onchange="carregarConfiguracoesDaEscolaSelecionada()"></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Regime Acadêmico *</label>
-                <select id="config-tipo-regime" class="form-select" onchange="alterarRegimeEscolaInterface()">
-                  <option value="bimestral">Bimestral (4 Bimestres)</option>
-                  <option value="trimestral">Trimestral (3 Trimestres)</option>
-                </select>
-              </div>
-            </div>
+<section id="page-config" class="page">
+  <div class="card">
+    <h3 class="card-title">⚙️ Configuração de Regime e Cálculo por Escola</h3>
+    <p style="margin-bottom: 20px; color: var(--text-muted);">Configure o regime acadêmico, a fórmula de média e os pesos de cada escola:</p>
+    
+    <div class="form-grid" style="margin-bottom: 20px;">
+      <div class="form-group">
+        <label class="form-label">Selecione a Escola *</label>
+        <select id="config-seletor-escola" class="form-select" onchange="carregarConfiguracoesDaEscolaSelecionada()"></select>
+      </div>
 
-            <div class="table-container" style="margin-bottom: 20px;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Período</th>
-                    <th>Peso Provas / Individual</th>
-                    <th>Peso Trabalhos em Grupo</th>
-                    <th>Peso Atividades Pontuadas</th>
-                    <th>Peso Habilidades</th>
-                  </tr>
-                </thead>
-                <tbody id="tabela-config-pesos-body"></tbody>
-              </table>
-            </div>
+      <div class="form-group">
+        <label class="form-label">Regime Acadêmico *</label>
+        <select id="config-tipo-regime" class="form-select" onchange="alterarRegimeEscolaInterface()">
+          <option value="bimestral">Bimestral (4 Bimestres)</option>
+          <option value="trimestral">Trimestral (3 Trimestres)</option>
+        </select>
+      </div>
 
-            <button class="btn btn-primary" onclick="salvarConfigEscola()">💾 Salvar Configurações da Escola</button>
-            <br><br><hr><br>
-            <p><strong>Status Conexão:</strong> <span id="api-url">Firebase Cloud Database Active</span></p>
-            <br>
-            <button class="btn btn-secondary" onclick="testarAPI()">🔧 Testar Conexão Firebase</button>
-          </div>
-        </section>
+      <div class="form-group full">
+        <label class="form-label">Fórmula da Média Unificada *</label>
+        <select id="config-tipo-calculo" class="form-select" onchange="alternarExibicaoTabelaPesosConfig()">
+          <option value="ponderada">📊 Média Ponderada (Multiplica pelo Peso da Categoria / 10)</option>
+          <option value="aritmetica">🧮 Média Aritmética Simples (Soma das categorias avaliadas / quantidade)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="container-tabela-config-pesos" class="table-container" style="margin-bottom: 20px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Período</th>
+            <th>Peso Provas / Individual</th>
+            <th>Peso Trabalhos em Grupo</th>
+            <th>Peso Atividades Pontuadas</th>
+            <th>Peso Habilidades</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-config-pesos-body"></tbody>
+      </table>
+    </div>
+
+    <button class="btn btn-primary" onclick="salvarConfigEscola()">💾 Salvar Configurações da Escola</button>
+  </div>
+</section>
       </div>
     </main>
   </div>
@@ -1340,6 +1387,8 @@
 
         if (page === 'turmas') {
           popularSeletorEscolasNaAbaTurmas();
+          } else if (page === 'boletim') {
+          popularSeletorEscolasBoletim();
         } else if (page === 'config') {
           popularSeletorEscolasConfig();
         } else if (page === 'relatorios') {
@@ -1564,6 +1613,7 @@
       popularSeletorEscolasNaAbaTurmas();
       popularSeletorEscolasConfig();
       popularTurmasNoFormUsuario();
+      popularSeletoresBoletim();
 
       if (turmaGrupoSelecionada) {
         const selectTurma = document.getElementById('filtro-turma-grupo');
@@ -1702,101 +1752,63 @@
     }
 
     function carregarConfiguracoesDaEscolaSelecionada() {
-      const escolaSel = document.getElementById('config-seletor-escola').value;
-      if (!escolaSel) return;
+  const escolaSel = document.getElementById('config-seletor-escola').value;
+  if (!escolaSel) return;
 
-      if (!configEscolas[escolaSel]) {
-        configEscolas[escolaSel] = {
-          regime: 'bimestral',
-          pesos: JSON.parse(JSON.stringify(PADRAO_BIMESTRAL))
-        };
-      }
+  if (!configEscolas[escolaSel]) {
+    configEscolas[escolaSel] = {
+      regime: 'bimestral',
+      calculo: 'ponderada',
+      pesos: JSON.parse(JSON.stringify(PADRAO_BIMESTRAL))
+    };
+  }
 
-      const conf = configEscolas[escolaSel];
-      document.getElementById('config-tipo-regime').value = conf.regime;
-      renderizarTabelaPesosConfig(conf.regime, conf.pesos);
-    }
+  const conf = configEscolas[escolaSel];
+  document.getElementById('config-tipo-regime').value = conf.regime || 'bimestral';
+  document.getElementById('config-tipo-calculo').value = conf.calculo || 'ponderada';
 
-    function alterarRegimeEscolaInterface() {
-      const regime = document.getElementById('config-tipo-regime').value;
-      const pesosPadrao = regime === 'bimestral' ? PADRAO_BIMESTRAL : PADRAO_TRIMESTRAL;
-      renderizarTabelaPesosConfig(regime, pesosPadrao);
-    }
+  alternarExibicaoTabelaPesosConfig();
+  renderizarTabelaPesosConfig(conf.regime || 'bimestral', conf.pesos || PADRAO_BIMESTRAL);
+}
 
-    function renderizarTabelaPesosConfig(regime, pesos) {
-      const tbody = document.getElementById('tabela-config-pesos-body');
-      if (!tbody) return;
+function alternarExibicaoTabelaPesosConfig() {
+  const tipoCalculo = document.getElementById('config-tipo-calculo').value;
+  const containerPesos = document.getElementById('container-tabela-config-pesos');
+  if (containerPesos) {
+    // Esconde a tabela de pesos se for Aritmética Simples
+    containerPesos.style.display = tipoCalculo === 'ponderada' ? 'block' : 'none';
+  }
+}
 
-      const periodos = regime === 'bimestral' 
-        ? [ { id: '1B', nome: '1º Bimestre' }, { id: '2B', nome: '2º Bimestre' }, { id: '3B', nome: '3º Bimestre' }, { id: '4B', nome: '4º Bimestre' } ]
-        : [ { id: '1T', nome: '1º Trimestre' }, { id: '2T', nome: '2º Trimestre' }, { id: '3T', nome: '3º Trimestre' } ];
+function salvarConfigEscola() {
+  const escolaSel = document.getElementById('config-seletor-escola').value;
+  if (!escolaSel) return;
 
-      tbody.innerHTML = periodos.map(p => {
-        const valP = pesos[p.id] || { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
-        const pInd = valP.indiv !== undefined ? valP.indiv : 3;
-        const pGrp = valP.grupo !== undefined ? valP.grupo : 3;
-        const pPon = valP.pontuada !== undefined ? valP.pontuada : 2;
-        const pHab = valP.hab !== undefined ? valP.hab : 2;
+  const regime = document.getElementById('config-tipo-regime').value;
+  const calculo = document.getElementById('config-tipo-calculo').value;
+  const periodos = regime === 'bimestral' ? ['1B', '2B', '3B', '4B'] : ['1T', '2T', '3T'];
 
-        return `
-          <tr>
-            <td><strong>${p.nome}</strong></td>
-            <td><input type="number" id="peso-indiv-${p.id}" class="form-input" value="${pInd}" min="0" max="10"></td>
-            <td><input type="number" id="peso-grupo-${p.id}" class="form-input" value="${pGrp}" min="0" max="10"></td>
-            <td><input type="number" id="peso-pontuada-${p.id}" class="form-input" value="${pPon}" min="0" max="10"></td>
-            <td><input type="number" id="peso-hab-${p.id}" class="form-input" value="${pHab}" min="0" max="10"></td>
-          </tr>
-        `;
-      }).join('');
-    }
+  const novosPesos = {};
+  periodos.forEach(p => {
+    const valIndiv = document.getElementById(`peso-indiv-${p}`)?.value;
+    const valGrupo = document.getElementById(`peso-grupo-${p}`)?.value;
+    const valPontuada = document.getElementById(`peso-pontuada-${p}`)?.value;
+    const valHab = document.getElementById(`peso-hab-${p}`)?.value;
 
-    function salvarConfigEscola() {
-      const escolaSel = document.getElementById('config-seletor-escola').value;
-      if (!escolaSel) return;
+    novosPesos[p] = {
+      indiv: valIndiv !== undefined && valIndiv !== '' ? Number(valIndiv) : 3,
+      grupo: valGrupo !== undefined && valGrupo !== '' ? Number(valGrupo) : 3,
+      pontuada: valPontuada !== undefined && valPontuada !== '' ? Number(valPontuada) : 2,
+      hab: valHab !== undefined && valHab !== '' ? Number(valHab) : 2
+    };
+  });
 
-      const regime = document.getElementById('config-tipo-regime').value;
-      const periodos = regime === 'bimestral' ? ['1B', '2B', '3B', '4B'] : ['1T', '2T', '3T'];
+  configEscolas[escolaSel] = { regime, calculo, pesos: novosPesos };
+  salvarLocal();
+  alert(`✅ Configurações salvas com sucesso para a escola "${escolaSel}"!`);
 
-      const novosPesos = {};
-      periodos.forEach(p => {
-        const valIndiv = document.getElementById(`peso-indiv-${p}`).value;
-        const valGrupo = document.getElementById(`peso-grupo-${p}`).value;
-        const valPontuada = document.getElementById(`peso-pontuada-${p}`).value;
-        const valHab = document.getElementById(`peso-hab-${p}`).value;
-
-        novosPesos[p] = {
-          indiv: valIndiv !== '' ? Number(valIndiv) : 3,
-          grupo: valGrupo !== '' ? Number(valGrupo) : 3,
-          pontuada: valPontuada !== '' ? Number(valPontuada) : 2,
-          hab: valHab !== '' ? Number(valHab) : 2
-        };
-      });
-
-      configEscolas[escolaSel] = { regime, pesos: novosPesos };
-      salvarLocal();
-      alert(`✅ Configurações salvas para a escola "${escolaSel}"!`);
-      
-      popularSeletorEscolasNaAbaTurmas();
-      popularSeletoresAtividade();
-      popularSeletoresAvaliacao();
-    }
-
-    function obterOpcoesPeriodosPorEscola(nomeEscola) {
-      const conf = configEscolas[nomeEscola] || { regime: 'bimestral' };
-      if (conf.regime === 'trimestral') {
-        return `
-          <option value="1T">1º Trimestre</option>
-          <option value="2T">2º Trimestre</option>
-          <option value="3T">3º Trimestre</option>
-        `;
-      }
-      return `
-        <option value="1B">1º Bimestre</option>
-        <option value="2B">2º Bimestre</option>
-        <option value="3B">3º Bimestre</option>
-        <option value="4B">4º Bimestre</option>
-      `;
-    }
+  atualizarViews();
+}
 
     function atualizarMetricas() {
       document.getElementById('metric-alunos').textContent = alunos.length;
@@ -2161,7 +2173,9 @@
   const isProf = usuarioLogado?.perfil === 'professor';
   const discProf = usuarioLogado?.disciplina;
 
-  const confEscola = configEscolas[escolaSel] || { pesos: PADRAO_BIMESTRAL };
+  // Carrega configurações da escola (regime, tipo de cálculo e pesos)
+  const confEscola = configEscolas[escolaSel] || { regime: 'bimestral', calculo: 'ponderada', pesos: PADRAO_BIMESTRAL };
+  const tipoCalculo = confEscola.calculo || 'ponderada';
   const pRaw = (confEscola.pesos && confEscola.pesos[periodoSel]) ? confEscola.pesos[periodoSel] : {};
   const pesos = {
     indiv: pRaw.indiv !== undefined ? pRaw.indiv : 3,
@@ -2170,11 +2184,20 @@
     hab: pRaw.hab !== undefined ? pRaw.hab : 2
   };
 
-  document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv})`;
-  document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo})`;
-  document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas (P: ${pesos.pontuada})`;
-  document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab})`;
-  document.getElementById('info-pesos-aplicados').textContent = `Provas: ${pesos.indiv} | Grupos: ${pesos.grupo} | Pontuadas: ${pesos.pontuada} | Habilidades: ${pesos.hab}`;
+  // Atualiza os cabeçalhos da tabela conforme o modo de cálculo
+  if (tipoCalculo === 'ponderada') {
+    document.getElementById('th-peso-indiv').textContent = `Individual / Provas (P: ${pesos.indiv})`;
+    document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo (P: ${pesos.grupo})`;
+    document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas (P: ${pesos.pontuada})`;
+    document.getElementById('th-peso-hab').textContent = `Habilidades (P: ${pesos.hab})`;
+    document.getElementById('info-pesos-aplicados').textContent = `Fórmula: Média Ponderada | Provas: ${pesos.indiv} | Grupos: ${pesos.grupo} | Pontuadas: ${pesos.pontuada} | Habilidades: ${pesos.hab}`;
+  } else {
+    document.getElementById('th-peso-indiv').textContent = `Individual / Provas`;
+    document.getElementById('th-peso-grupo').textContent = `Trabalho em Grupo`;
+    document.getElementById('th-peso-pontuada').textContent = `Atividades Pontuadas`;
+    document.getElementById('th-peso-hab').textContent = `Habilidades`;
+    document.getElementById('info-pesos-aplicados').textContent = `Fórmula: Média Aritmética Simples (Soma das categorias avaliadas ÷ quantidade de categorias com nota)`;
+  }
 
   // 1. Mapeia os tipos de atividades atuais para sincronização dinâmica
   const mapaTiposAtividades = {};
@@ -2213,7 +2236,7 @@
     regsAlunoBrutos.forEach(r => {
       const nomeLimpo = (r.trabalho || r.habilidade || r.tipo).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
       
-      // Ajusta o tipo do registro caso a atividade tenha sido alterada para Pontuada/Individual
+      // Ajusta o tipo do registro caso a atividade tenha sido alterada
       if (mapaTiposAtividades[nomeLimpo]) {
         r.tipo = mapaTiposAtividades[nomeLimpo];
       }
@@ -2252,39 +2275,73 @@
       if (medH < minH) { minH = medH; piorHab = h; }
     });
 
-    // CÁLCULO DA MÉDIA UNIFICADA PONDERADA (Ponderação Direta Decimal)
+    // CÁLCULO DA MÉDIA UNIFICADA (PONDERADA vs. ARITMÉTICA SIMPLES)
     let notaUnificadaFinal = null;
     let possuiAvaliacaoLancada = false;
-    let somaPontos = 0;
+    const resumoFinalList = [];
 
-    if (medIndiv !== null && pesos.indiv > 0) {
-      somaPontos += medIndiv * (pesos.indiv / 10);
-      possuiAvaliacaoLancada = true;
-    }
-    if (medGrupo !== null && pesos.grupo > 0) {
-      somaPontos += medGrupo * (pesos.grupo / 10);
-      possuiAvaliacaoLancada = true;
-    }
-    if (medPontuada !== null && pesos.pontuada > 0) {
-      somaPontos += medPontuada * (pesos.pontuada / 10);
-      possuiAvaliacaoLancada = true;
-    }
-    if (medHab !== null && pesos.hab > 0) {
-      somaPontos += medHab * (pesos.hab / 10);
-      possuiAvaliacaoLancada = true;
+    if (tipoCalculo === 'ponderada') {
+      let somaPontos = 0;
+
+      if (medIndiv !== null && pesos.indiv > 0) {
+        somaPontos += medIndiv * (pesos.indiv / 10);
+        possuiAvaliacaoLancada = true;
+        resumoFinalList.push({ trabalho: `Provas/Individuais (Peso ${pesos.indiv})`, nota: medIndiv * (pesos.indiv / 10) });
+      }
+      if (medGrupo !== null && pesos.grupo > 0) {
+        somaPontos += medGrupo * (pesos.grupo / 10);
+        possuiAvaliacaoLancada = true;
+        resumoFinalList.push({ trabalho: `Trabalho em Grupo (Peso ${pesos.grupo})`, nota: medGrupo * (pesos.grupo / 10) });
+      }
+      if (medPontuada !== null && pesos.pontuada > 0) {
+        somaPontos += medPontuada * (pesos.pontuada / 10);
+        possuiAvaliacaoLancada = true;
+        resumoFinalList.push({ trabalho: `Atividades Pontuadas (Peso ${pesos.pontuada})`, nota: medPontuada * (pesos.pontuada / 10) });
+      }
+      if (medHab !== null && pesos.hab > 0) {
+        somaPontos += medHab * (pesos.hab / 10);
+        possuiAvaliacaoLancada = true;
+        resumoFinalList.push({ trabalho: `Habilidades (Peso ${pesos.hab})`, nota: medHab * (pesos.hab / 10) });
+      }
+
+      if (possuiAvaliacaoLancada) notaUnificadaFinal = somaPontos;
+
+    } else {
+      // Média Aritmética Simples apenas das categorias que possuem nota lançada
+      let somaAritmetica = 0;
+      let qtdCategorias = 0;
+
+      if (medIndiv !== null) {
+        somaAritmetica += medIndiv;
+        qtdCategorias++;
+        resumoFinalList.push({ trabalho: `Média Provas/Individuais`, nota: medIndiv });
+      }
+      if (medGrupo !== null) {
+        somaAritmetica += medGrupo;
+        qtdCategorias++;
+        resumoFinalList.push({ trabalho: `Média Trabalhos em Grupo`, nota: medGrupo });
+      }
+      if (medPontuada !== null) {
+        somaAritmetica += medPontuada;
+        qtdCategorias++;
+        resumoFinalList.push({ trabalho: `Média Atividades Pontuadas`, nota: medPontuada });
+      }
+      if (medHab !== null) {
+        somaAritmetica += medHab;
+        qtdCategorias++;
+        resumoFinalList.push({ trabalho: `Média Habilidades`, nota: medHab });
+      }
+
+      if (qtdCategorias > 0) {
+        notaUnificadaFinal = somaAritmetica / qtdCategorias;
+        possuiAvaliacaoLancada = true;
+      }
     }
 
-    if (possuiAvaliacaoLancada) {
-      notaUnificadaFinal = somaPontos;
+    if (possuiAvaliacaoLancada && notaUnificadaFinal !== null) {
       somaDiagsTurma += notaUnificadaFinal;
       qtdDiagsContadas++;
     }
-
-    const resumoFinalList = [];
-    if (medIndiv !== null) resumoFinalList.push({ trabalho: `Provas/Individuais (Peso ${pesos.indiv})`, nota: medIndiv * (pesos.indiv / 10) });
-    if (medGrupo !== null) resumoFinalList.push({ trabalho: `Trabalho em Grupo (Peso ${pesos.grupo})`, nota: medGrupo * (pesos.grupo / 10) });
-    if (medPontuada !== null) resumoFinalList.push({ trabalho: `Atividades Pontuadas (Peso ${pesos.pontuada})`, nota: medPontuada * (pesos.pontuada / 10) });
-    if (medHab !== null) resumoFinalList.push({ trabalho: `Habilidades (Peso ${pesos.hab})`, nota: medHab * (pesos.hab / 10) });
 
     return `
       <tr>
@@ -2294,8 +2351,8 @@
         <td ${gerarTooltipDetalhamento(regsGrupo, 'Trabalho em Grupo')}>${medGrupo !== null ? medGrupo.toFixed(1) : '—'}</td>
         <td ${gerarTooltipDetalhamento(regsPontuada, 'Atividades Pontuadas')}>${medPontuada !== null ? medPontuada.toFixed(1) : '—'}</td>
         <td ${gerarTooltipDetalhamento(regsHab, 'Habilidades')}>${medHab !== null ? medHab.toFixed(1) : '—'}</td>
-        <td style="background: #e0e7ff; text-align: center;" ${gerarTooltipDetalhamento(resumoFinalList, 'Pontos na Média Unificada')}>
-          <strong style="font-size: 16px; color: ${notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
+        <td style="background: #e0e7ff; text-align: center;" ${gerarTooltipDetalhamento(resumoFinalList, 'Composição da Média Unificada')}>
+          <strong style="font-size: 16px; color: ${notaUnificadaFinal !== null && notaUnificadaFinal >= 6 ? 'var(--primary-dark)' : 'var(--danger)'};">
             ${notaUnificadaFinal !== null ? notaUnificadaFinal.toFixed(1) : '—'}
           </strong>
         </td>
@@ -4602,6 +4659,241 @@ function renderizarMapaNotasAluno(nomeAluno) {
   salvarLocal();
   alert(`✅ Registros antigos de ${nomeAluno} foram limpos com sucesso! Pode realizar um novo lançamento limpo.`);
   atualizarViews();
+}
+
+// 1. Inicialização dos Seletores da Aba Boletim
+function popularSeletoresBoletim() {
+  const selEscola = document.getElementById('boletim-filtro-escola');
+  const selDisc = document.getElementById('boletim-filtro-disciplina');
+  if (!selEscola) return;
+
+  const turmasUnicas = obterListaTurmasUnicas();
+  const escolasUnicas = [...new Set(turmasUnicas.map(t => t.escola))].sort();
+
+  selEscola.innerHTML = '<option value="">-- Selecione uma Escola --</option>' + 
+    escolasUnicas.map(e => `<option value="${e}">${e}</option>`).join('');
+
+  // Se o usuário for professor, restringe para a disciplina dele
+  if (usuarioLogado && usuarioLogado.perfil === 'professor' && usuarioLogado.disciplina) {
+    if (selDisc) {
+      selDisc.value = usuarioLogado.disciplina;
+      selDisc.disabled = true;
+    }
+  } else if (selDisc) {
+    selDisc.disabled = false;
+  }
+
+  atualizarTurmasAbaBoletim();
+}
+
+function atualizarTurmasAbaBoletim() {
+  const escolaSel = document.getElementById('boletim-filtro-escola').value;
+  const selTurma = document.getElementById('boletim-filtro-turma');
+  const selPeriodo = document.getElementById('boletim-filtro-periodo');
+  if (!selTurma) return;
+
+  if (!escolaSel) {
+    selTurma.innerHTML = '<option value="">-- Selecione uma Escola primeiro --</option>';
+    selTurma.disabled = true;
+    if (selPeriodo) selPeriodo.innerHTML = '';
+    return;
+  }
+
+  if (selPeriodo) selPeriodo.innerHTML = obterOpcoesPeriodosPorEscola(escolaSel);
+
+  const turmasFiltradas = [...new Set(
+    obterListaTurmasUnicas().filter(a => a.escola === escolaSel).map(a => a.turma)
+  )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  if (turmasFiltradas.length > 0) {
+    selTurma.innerHTML = '<option value="">-- Selecione a Turma --</option>' + 
+      turmasFiltradas.map(t => `<option value="${t}">${t}</option>`).join('');
+    selTurma.disabled = false;
+  } else {
+    selTurma.innerHTML = '<option value="">Nenhuma turma encontrada</option>';
+    selTurma.disabled = true;
+  }
+
+  carregarMatrizBoletim();
+}
+
+// 2. Carrega e Monta a Tabela do Boletim
+function carregarMatrizBoletim() {
+  const escolaSel = document.getElementById('boletim-filtro-escola')?.value;
+  const turmaSel = document.getElementById('boletim-filtro-turma')?.value;
+  const periodoSel = document.getElementById('boletim-filtro-periodo')?.value;
+  const disciplinaSel = document.getElementById('boletim-filtro-disciplina')?.value;
+
+  const thead = document.getElementById('head-matriz-boletim');
+  const tbody = document.getElementById('body-matriz-boletim');
+  if (!thead || !tbody) return;
+
+  if (!escolaSel || !turmaSel) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Selecione a Escola e a Turma acima para carregar o boletim.</td></tr>';
+    return;
+  }
+
+  const alunosTurma = alunos.filter(a => aTrim(a.turma) === aTrim(turmaSel) && aTrim(a.escola) === aTrim(escolaSel));
+  ordenarAlunosPorNome(alunosTurma);
+
+  // Filtra atividades e trabalhos da turma/disciplina/período
+  const atvsTurma = atividades.filter(a => aTrim(a.turma) === aTrim(turmaSel) && aTrim(a.escola) === aTrim(escolaSel) && a.periodo === periodoSel && a.disciplina === disciplinaSel);
+  const trabsTurma = trabalhos.filter(t => aTrim(t.turma) === aTrim(turmaSel) && aTrim(t.escola) === aTrim(escolaSel) && t.periodo === periodoSel && t.disciplina === disciplinaSel);
+
+  const colunas = [
+    ...atvsTurma.map(a => ({ titulo: a.titulo, tipo: a.tipo })),
+    ...trabsTurma.map(t => ({ titulo: t.nome, tipo: 'Trabalho em Grupo' }))
+  ];
+
+  // Monta Cabeçalho
+  let htmlHead = `<tr><th style="width: 100px;">Matrícula</th><th>Aluno</th>`;
+  if (colunas.length === 0) {
+    htmlHead += `<th>Status</th>`;
+  } else {
+    colunas.forEach(col => {
+      htmlHead += `<th style="text-align: center;">${col.titulo}<br><small style="color:var(--text-muted); font-weight:normal;">${col.tipo}</small></th>`;
+    });
+  }
+  htmlHead += `</tr>`;
+  thead.innerHTML = htmlHead;
+
+  if (alunosTurma.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhum aluno cadastrado nesta turma.</td></tr>';
+    return;
+  }
+
+  // Monta Linhas de Alunos com Inputs para Notas
+  tbody.innerHTML = alunosTurma.map(aluno => {
+    let linha = `<tr><td>${aluno.matricula || '—'}</td><td><strong>${aluno.nome}</strong></td>`;
+
+    if (colunas.length === 0) {
+      linha += `<td style="color: var(--text-muted); text-align: center;">Sem atividades cadastradas neste período/disciplina</td>`;
+    } else {
+      colunas.forEach(col => {
+        const reg = registros.find(r => 
+          r.aluno === aluno.nome && 
+          aTrim(r.turma) === aTrim(turmaSel) && 
+          r.periodo === periodoSel && 
+          r.disciplina === disciplinaSel &&
+          (r.trabalho && r.trabalho.includes(col.titulo))
+        );
+
+        const notaVal = reg && reg.nota !== undefined ? reg.nota : '';
+
+        linha += `
+          <td style="text-align: center;">
+            <input type="number" class="form-input input-boletim-nota" 
+                   data-aluno="${aluno.nome}" 
+                   data-turma="${turmaSel}" 
+                   data-escola="${escolaSel}" 
+                   data-periodo="${periodoSel}" 
+                   data-disciplina="${disciplinaSel}" 
+                   data-titulo="${col.titulo}" 
+                   data-tipo="${col.tipo}" 
+                   min="0" max="10" step="0.5" 
+                   value="${notaVal}" 
+                   style="width: 75px; text-align: center; font-weight: bold; padding: 4px;">
+          </td>
+        `;
+      });
+    }
+
+    linha += `</tr>`;
+    return linha;
+  }).join('');
+}
+
+// 3. Salva todas as alterações efetuadas nas células do Boletim
+async function salvarAlteracoesBoletimEmLote() {
+  const inputs = document.querySelectorAll('.input-boletim-nota');
+  let alteracoes = 0;
+
+  for (const inp of inputs) {
+    const notaVal = inp.value.trim();
+    if (notaVal === '') continue;
+
+    const aluno = inp.dataset.aluno;
+    const turma = inp.dataset.turma;
+    const escola = inp.dataset.escola;
+    const periodo = inp.dataset.periodo;
+    const disciplina = inp.dataset.disciplina;
+    const titulo = inp.dataset.titulo;
+    const tipo = inp.dataset.tipo;
+
+    let reg = registros.find(r => 
+      r.aluno === aluno && 
+      aTrim(r.turma) === aTrim(turma) && 
+      r.periodo === periodo && 
+      r.disciplina === disciplina &&
+      (r.trabalho && r.trabalho.includes(titulo))
+    );
+
+    if (reg) {
+      if (String(reg.nota) !== String(notaVal)) {
+        reg.nota = notaVal;
+        if (reg.id) await api(`registros/${reg.id}`, { method: 'PUT', body: JSON.stringify(reg) });
+        alteracoes++;
+      }
+    } else {
+      const novo = {
+        aluno, turma, escola, periodo, disciplina,
+        tipo, trabalho: titulo, nota: notaVal,
+        data: new Date().toISOString().split('T')[0]
+      };
+      const res = await api('registros', { method: 'POST', body: JSON.stringify(novo) });
+      registros.push(res);
+      alteracoes++;
+    }
+  }
+
+  salvarLocal();
+  alert(`✅ Boletim atualizado com sucesso! ${alteracoes} nota(s) salva(s).`);
+  atualizarViews();
+}
+
+function obterOpcoesPeriodosPorEscola(escolaNome) {
+  if (!escolaNome) return '<option value="">-- Selecione uma Escola --</option>';
+  
+  const conf = configEscolas[escolaNome] || { regime: 'bimestral' };
+  const regime = conf.regime || 'bimestral';
+
+  if (regime === 'trimestral') {
+    return `
+      <option value="1T">1º Trimestre (1T)</option>
+      <option value="2T">2º Trimestre (2T)</option>
+      <option value="3T">3º Trimestre (3T)</option>
+    `;
+  }
+
+  return `
+    <option value="1B">1º Bimestre (1B)</option>
+    <option value="2B">2º Bimestre (2B)</option>
+    <option value="3B">3º Bimestre (3B)</option>
+    <option value="4B">4º Bimestre (4B)</option>
+  `;
+}
+
+// 2. Renderiza a tabela de edição de pesos na aba Configuração
+function renderizarTabelaPesosConfig(regime, pesosObjeto) {
+  const tbody = document.getElementById('tabela-config-pesos-body');
+  if (!tbody) return;
+
+  const periodos = regime === 'trimestral' ? ['1T', '2T', '3T'] : ['1B', '2B', '3B', '4B'];
+
+  tbody.innerHTML = periodos.map(p => {
+    const pVals = (pesosObjeto && pesosObjeto[p]) ? pesosObjeto[p] : { indiv: 3, grupo: 3, pontuada: 2, hab: 2 };
+
+    return `
+      <tr>
+        <td><strong>${p}</strong></td>
+        <td><input type="number" id="peso-indiv-${p}" class="form-input" min="0" max="10" step="1" value="${pVals.indiv}"></td>
+        <td><input type="number" id="peso-grupo-${p}" class="form-input" min="0" max="10" step="1" value="${pVals.grupo}"></td>
+        <td><input type="number" id="peso-pontuada-${p}" class="form-input" min="0" max="10" step="1" value="${pVals.pontuada}"></td>
+        <td><input type="number" id="peso-hab-${p}" class="form-input" min="0" max="10" step="1" value="${pVals.hab}"></td>
+      </tr>
+    `;
+  }).join('');
 }
   </script>
 </body>
